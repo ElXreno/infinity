@@ -7,7 +7,9 @@ import numpy as np
 
 from infinity_emb._optional_imports import CHECK_ONNXRUNTIME
 from infinity_emb.args import EngineArgs
+from infinity_emb.primitives import RerankLimits
 from infinity_emb.transformer.abstract import BaseCrossEncoder
+from infinity_emb.transformer.crossencoder import truncate_texts_to_tokens
 from infinity_emb.transformer.padding import padding_bucket
 from infinity_emb.transformer.utils_optimum import (
     device_to_onnx,
@@ -61,18 +63,47 @@ class OptimumCrossEncoder(BaseCrossEncoder):
         self._infinity_tokenizer = copy.deepcopy(self.tokenizer)
         self.engine_args = engine_args
 
-    def encode_pre(self, queries_docs: list[tuple[str, str]]) -> dict[str, np.ndarray]:
-        pad_to_multiple_of, max_length = padding_bucket(
-            self.config.max_position_embeddings, self.engine_args.pad_to_multiple_of
+    def encode_pre(
+        self, queries_docs: list[tuple[str, str, RerankLimits]]
+    ) -> dict[str, np.ndarray]:
+        queries = [t[0] for t in queries_docs]
+        documents = [t[1] for t in queries_docs]
+        limits = [t[2] if len(t) > 2 else RerankLimits() for t in queries_docs]
+
+        pad_to_multiple_of, model_max = padding_bucket(
+            getattr(self.config, "max_position_embeddings", None)
+            or self.tokenizer.model_max_length,
+            self.engine_args.pad_to_multiple_of,
         )
-        encoded = self.tokenizer(
-            queries_docs,
-            max_length=max_length,
+
+        def pair_max_length(limit: RerankLimits) -> int:
+            if (limit.max_pair_tokens or 0) > 0:
+                return min(limit.max_pair_tokens, model_max)
+            return model_max
+
+        # 1) head-truncate the query and the document independently, then
+        # 2) cap the joined pair (longest side trimmed first) to max_pair_tokens.
+        queries = truncate_texts_to_tokens(
+            self.tokenizer, queries, [lim.max_query_tokens for lim in limits]
+        )
+        documents = truncate_texts_to_tokens(
+            self.tokenizer, documents, [lim.max_tokens_per_doc for lim in limits]
+        )
+        encodings = [
+            self.tokenizer(
+                q,
+                d,
+                max_length=pair_max_length(lim),
+                truncation="longest_first",
+                return_token_type_ids=False,
+            )
+            for q, d, lim in zip(queries, documents, limits)
+        ]
+        encoded = self.tokenizer.pad(
+            encodings,
             padding=True,
             pad_to_multiple_of=pad_to_multiple_of,
-            truncation="longest_first",
             return_tensors="np",
-            return_token_type_ids=False,
         )
         # Windows requires int64
         encoded = {k: v.astype(np.int64) for k, v in encoded.items()}

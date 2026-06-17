@@ -55,11 +55,20 @@ class EngineArgs:
             multiple of this value, 0 disables. Defaults to 0.
         onnx_provider_options, str: JSON object passed as provider_options to the
             onnxruntime execution provider. Defaults to "" (none).
+        max_query_tokens, Optional[int]: rerank ceiling, head-truncate the query to at most
+            N tokens. A client may request fewer. Defaults to None (no limit).
+        max_tokens_per_doc, Optional[int]: rerank ceiling, head-truncate each document to at
+            most N tokens. A client may request fewer. Defaults to None (no limit).
+        max_pair_tokens, Optional[int]: rerank ceiling on the joined (query, document) pair.
+            A client may request fewer. Defaults to None (no limit).
     """
 
     model_name_or_path: str = MANAGER.model_id[0]
     batch_size: int = MANAGER.batch_size[0]
     revision: Optional[str] = MANAGER.revision[0]
+    max_query_tokens: Optional[int] = MANAGER.max_query_tokens[0]
+    max_tokens_per_doc: Optional[int] = MANAGER.max_tokens_per_doc[0]
+    max_pair_tokens: Optional[int] = MANAGER.max_pair_tokens[0]
     trust_remote_code: bool = MANAGER.trust_remote_code[0]
     engine: InferenceEngine = InferenceEngine[MANAGER.engine[0]]
     model_warmup: bool = MANAGER.model_warmup[0]
@@ -111,6 +120,10 @@ class EngineArgs:
         if self.onnx_provider_options is None:
             object.__setattr__(self, "onnx_provider_options", "")
         self.onnx_provider_options_dict()
+        for limit_name in ("max_query_tokens", "max_tokens_per_doc", "max_pair_tokens"):
+            limit = getattr(self, limit_name)
+            if limit is not None and limit <= 0:
+                raise ValueError(f"{limit_name} must be a positive integer or None, got {limit}")
         if isinstance(self.vector_disk_cache_path, bool):
             object.__setattr__(
                 self,
@@ -191,8 +204,11 @@ class EngineArgs:
                 onnx_do_not_prefer_quantized=onnx_do_not_prefer_quantized,
                 pad_to_multiple_of=pad_to_multiple_of,
                 onnx_provider_options=onnx_provider_options,
+                max_query_tokens=max_query_tokens,
+                max_tokens_per_doc=max_tokens_per_doc,
+                max_pair_tokens=max_pair_tokens,
             )
-            for model_name_or_path, batch_size, revision, trust_remote_code, engine, model_warmup, device, compile, bettertransformer, dtype, pooling_method, lengths_via_tokenize, embedding_dtype, served_model_name, onnx_disable_optimize, onnx_do_not_prefer_quantized, pad_to_multiple_of, onnx_provider_options in zip_longest(
+            for model_name_or_path, batch_size, revision, trust_remote_code, engine, model_warmup, device, compile, bettertransformer, dtype, pooling_method, lengths_via_tokenize, embedding_dtype, served_model_name, onnx_disable_optimize, onnx_do_not_prefer_quantized, pad_to_multiple_of, onnx_provider_options, max_query_tokens, max_tokens_per_doc, max_pair_tokens in zip_longest(
                 MANAGER.model_id,
                 MANAGER.batch_size,
                 MANAGER.revision,
@@ -211,5 +227,8 @@ class EngineArgs:
                 MANAGER.onnx_do_not_prefer_quantized,
                 MANAGER.pad_to_multiple_of,
                 MANAGER.onnx_provider_options,
+                MANAGER.max_query_tokens,
+                MANAGER.max_tokens_per_doc,
+                MANAGER.max_pair_tokens,
             )
         ]

@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 from infinity_emb._optional_imports import CHECK_SENTENCE_TRANSFORMERS, CHECK_TORCH
 from infinity_emb.args import EngineArgs
 from infinity_emb.log_handler import logger
-from infinity_emb.primitives import Device
+from infinity_emb.primitives import Device, RerankLimits
 from infinity_emb.transformer.abstract import BaseCrossEncoder
+from infinity_emb.transformer.crossencoder import truncate_texts_to_tokens
 from infinity_emb.transformer.quantization.interface import (
     quant_interface,
 )
@@ -19,7 +20,6 @@ from infinity_emb.transformer.padding import padding_bucket
 if CHECK_TORCH.is_available and CHECK_SENTENCE_TRANSFORMERS.is_available:
     import torch
     from sentence_transformers import CrossEncoder  # type: ignore[import-untyped]
-    from transformers.tokenization_utils_base import LARGE_INTEGER  # type: ignore[import-untyped]
 else:
 
     class CrossEncoder:  # type: ignore[no-redef]
@@ -91,24 +91,49 @@ class CrossEncoderPatched(CrossEncoder, BaseCrossEncoder):
             logger.info("using torch.compile(dynamic=True)")
             self.model = torch.compile(self.model, dynamic=True)
 
-    def encode_pre(self, input_tuples: list[tuple[str, str]]):
+    def encode_pre(self, input_tuples: list[tuple[str, str, RerankLimits]]):
         # return input_tuples
-        texts = [[t[0].strip(), t[1].strip()] for t in input_tuples]
+        queries = [t[0].strip() for t in input_tuples]
+        documents = [t[1].strip() for t in input_tuples]
+        limits = [t[2] if len(t) > 2 else RerankLimits() for t in input_tuples]
 
-        pad_to_multiple_of, max_length = None, None
-        if self.engine_args.pad_to_multiple_of and self.tokenizer.model_max_length < LARGE_INTEGER:
-            pad_to_multiple_of, max_length = padding_bucket(
-                self.tokenizer.model_max_length, self.engine_args.pad_to_multiple_of
+        pad_to_multiple_of, model_max = padding_bucket(
+            getattr(self.model.config, "max_position_embeddings", None)
+            or self.tokenizer.model_max_length,
+            self.engine_args.pad_to_multiple_of,
+        )
+
+        def pair_max_length(limit: RerankLimits) -> int:
+            # Always cap at the model's positional limit: max_pair_tokens may exceed it
+            # (e.g. a 768-token request against a 512-position model), which would produce
+            # a sequence the model cannot process in encode_core.
+            if (limit.max_pair_tokens or 0) > 0:
+                return min(limit.max_pair_tokens, model_max)
+            return model_max
+
+        # 1) head-truncate the query and the document independently, then
+        # 2) cap the joined pair (longest side trimmed first) to max_pair_tokens.
+        queries = truncate_texts_to_tokens(
+            self.tokenizer, queries, [lim.max_query_tokens for lim in limits]
+        )
+        documents = truncate_texts_to_tokens(
+            self.tokenizer, documents, [lim.max_tokens_per_doc for lim in limits]
+        )
+        encodings = [
+            self.tokenizer(
+                q,
+                d,
+                truncation="longest_first",
+                max_length=pair_max_length(lim),
             )
-        tokenized = self.tokenizer(
-            texts,
-            max_length=max_length,
+            for q, d, lim in zip(queries, documents, limits)
+        ]
+        return self.tokenizer.pad(
+            encodings,
             padding=True,
             pad_to_multiple_of=pad_to_multiple_of,
-            truncation="longest_first",
             return_tensors="pt",
         )
-        return tokenized
 
     def encode_core(self, features: dict[str, "Tensor"]):
         """

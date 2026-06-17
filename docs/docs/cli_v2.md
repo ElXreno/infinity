@@ -206,6 +206,32 @@ $ infinity_emb v2 --help
 │                                                                                          string passes nothing.      │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_ONNX_PROVIDER_OP… │
+│ --max-query-tokens                                           INTEGER                     Rerank ceiling:             │
+│                                                                                          head-truncate the query to  │
+│                                                                                          at most N tokens before     │
+│                                                                                          scoring. A client may       │
+│                                                                                          request fewer. Unset        │
+│                                                                                          disables the limit.         │
+│                                                                                          [env var:                   │
+│                                                                                          `INFINITY_MAX_QUERY_TOKENS… │
+│                                                                                          [default: None]             │
+│ --max-tokens-per-doc                                         INTEGER                     Rerank ceiling:             │
+│                                                                                          head-truncate each document │
+│                                                                                          to at most N tokens before  │
+│                                                                                          scoring. A client may       │
+│                                                                                          request fewer. Unset        │
+│                                                                                          disables the limit.         │
+│                                                                                          [env var:                   │
+│                                                                                          `INFINITY_MAX_TOKENS_PER_D… │
+│                                                                                          [default: None]             │
+│ --max-pair-tokens                                            INTEGER                     Rerank ceiling on the       │
+│                                                                                          joined (query, document)    │
+│                                                                                          pair, in tokens. A client   │
+│                                                                                          may request fewer. Unset    │
+│                                                                                          disables the limit.         │
+│                                                                                          [env var:                   │
+│                                                                                          `INFINITY_MAX_PAIR_TOKENS`] │
+│                                                                                          [default: None]             │
 │ --help                                                                                   Show this message and exit. │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 

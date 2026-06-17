@@ -286,6 +286,18 @@ if CHECK_TYPER.is_available:
             **_construct("onnx_provider_options"),
             help="JSON object merged into the provider_options of the onnxruntime execution provider, e.g. '{\"num_of_threads\": 8}' for OpenVINO or '{\"trt_fp16_enable\": false}' for TensorRT. Empty string passes nothing.",
         ),
+        max_query_tokens: list[int] = typer.Option(
+            **_construct("max_query_tokens"),
+            help="Rerank ceiling: head-truncate the query to at most N tokens before scoring. A client may request fewer. Unset disables the limit.",
+        ),
+        max_tokens_per_doc: list[int] = typer.Option(
+            **_construct("max_tokens_per_doc"),
+            help="Rerank ceiling: head-truncate each document to at most N tokens before scoring. A client may request fewer. Unset disables the limit.",
+        ),
+        max_pair_tokens: list[int] = typer.Option(
+            **_construct("max_pair_tokens"),
+            help="Rerank ceiling on the joined (query, document) pair, in tokens. A client may request fewer. Unset disables the limit.",
+        ),
     ):
         """Infinity API ♾️  cli v2. MIT License. Copyright (c) 2023-now Michael Feil \n
         \n
@@ -354,6 +366,9 @@ if CHECK_TYPER.is_available:
             onnx_do_not_prefer_quantized=onnx_do_not_prefer_quantized,
             pad_to_multiple_of=pad_to_multiple_of,
             onnx_provider_options=onnx_provider_options,
+            max_query_tokens=max_query_tokens,
+            max_tokens_per_doc=max_tokens_per_doc,
+            max_pair_tokens=max_pair_tokens,
         )
 
         engine_args = []
