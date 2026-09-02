@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2023-now michaelfeil
 
+import os
+import shutil
 from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
-from huggingface_hub import HfApi, get_token  # type: ignore
+from huggingface_hub import HfApi, get_token, snapshot_download  # type: ignore
 from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE  # type: ignore
 
 from infinity_emb._optional_imports import CHECK_ONNXRUNTIME, CHECK_OPTIMUM_AMD
@@ -84,6 +86,50 @@ def device_to_onnx(device: Device) -> str:
         raise ValueError(f"Unknown device {device}")
 
 
+def symlink_free_model_dir(
+    model_name_or_path: str, file_name: str, revision: Optional[str] = None
+) -> str:
+    """onnxruntime >= 1.23 rejects external data whose canonical path leaves the model
+    directory (tensorprotoutils.cc, ValidateExternalDataPath). The huggingface cache stores
+    every file as a symlink into blobs/, so a `*.onnx_data` next to the model always "escapes".
+    Hardlink the snapshot into a plain directory instead; copy when hardlinks are impossible.
+    """
+    if Path(model_name_or_path).exists():
+        return model_name_or_path
+    onnx_file = Path(file_name).as_posix()
+    snapshot = Path(
+        snapshot_download(
+            model_name_or_path,
+            revision=revision,
+            token=get_token(),
+            allow_patterns=["*.json", onnx_file, f"{onnx_file}*"],
+        )
+    )
+    if not (snapshot / onnx_file).is_symlink():
+        return snapshot.as_posix()
+    target = (
+        Path(HUGGINGFACE_HUB_CACHE)
+        / "infinity_onnx"
+        / "materialized"
+        / model_name_or_path
+        / snapshot.name
+    )
+    for src in snapshot.rglob("*"):
+        if src.is_dir():
+            continue
+        dst = target / src.relative_to(snapshot)
+        if dst.exists():
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        real = src.resolve()
+        try:
+            os.link(real, dst)
+        except OSError:
+            shutil.copy2(real, dst)
+    logger.info(f"loading {model_name_or_path} from the symlink-free copy {target}")
+    return target.as_posix()
+
+
 def optimize_model(
     model_name_or_path: Union[str, Path],
     model_class: "ORTModel",
@@ -109,6 +155,16 @@ def optimize_model(
             provider session. Merged over the TensorRT defaults. Defaults to None.
     """
     provider_options = provider_options or {}
+    repo_id = str(model_name_or_path)
+    model_name_or_path = symlink_free_model_dir(repo_id, file_name, revision)
+    file_path = Path(file_name)
+    try:
+        file_path = file_path.relative_to(model_name_or_path)
+    except ValueError:
+        pass
+    file_kwargs: dict = {"file_name": file_path.name}
+    if file_path.parent != Path("."):
+        file_kwargs["subfolder"] = file_path.parent.as_posix()
 
     ## If there is no need for optimization
     if execution_provider == "TensorrtExecutionProvider":
@@ -117,7 +173,7 @@ def optimize_model(
             revision=revision,
             trust_remote_code=trust_remote_code,
             provider=execution_provider,
-            file_name=file_name,
+            **file_kwargs,
             provider_options={
                 "trt_fp16_enable": True,
                 "trt_layer_norm_fp32_fallback": True,
@@ -137,15 +193,13 @@ def optimize_model(
             revision=revision,
             trust_remote_code=trust_remote_code,
             provider=execution_provider,
-            file_name=file_name,
+            **file_kwargs,
             provider_options=provider_options or None,
         )
 
     ## path to find if model has been optimized
     CHECK_ONNXRUNTIME.mark_required()
-    path_folder = (
-        Path(HUGGINGFACE_HUB_CACHE) / "infinity_onnx" / execution_provider / model_name_or_path
-    )
+    path_folder = Path(HUGGINGFACE_HUB_CACHE) / "infinity_onnx" / execution_provider / repo_id
     OPTIMIZED_SUFFIX = "_optimized.onnx"
     files_optimized = list(path_folder.glob(f"**/*{OPTIMIZED_SUFFIX}"))
 
@@ -174,7 +228,7 @@ def optimize_model(
         revision=revision,
         trust_remote_code=trust_remote_code,
         provider=execution_provider,
-        file_name=file_name,
+        **file_kwargs,
         provider_options=provider_options or None,
     )
     if not optimize_model or execution_provider == "TensorrtExecutionProvider":
@@ -189,7 +243,7 @@ def optimize_model(
         )
         optimization_config = OptimizationConfig(
             optimization_level=99,
-            optimize_with_onnxruntime_only=False,
+            enable_transformers_specific_optimizations=True,
             optimize_for_gpu=is_gpu,
             fp16=is_gpu,
             # enable_gelu_approximation=True,

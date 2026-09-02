@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import ClassVar
 
 import pytest
@@ -24,9 +25,52 @@ class _RecordingModel:
 @pytest.fixture
 def recording_model(monkeypatch, tmp_path):
     monkeypatch.setattr(utils_optimum, "HUGGINGFACE_HUB_CACHE", tmp_path.as_posix())
+    monkeypatch.setattr(utils_optimum, "symlink_free_model_dir", lambda repo, *_, **__: repo)
     _RecordingModel.calls = []
     _RecordingModel.fail_on = ""
     return _RecordingModel
+
+
+def test_symlink_free_model_dir_hardlinks_the_snapshot(monkeypatch, tmp_path):
+    blobs = tmp_path / "blobs"
+    snapshot = tmp_path / "snapshots" / "abc123"
+    (blobs).mkdir()
+    (snapshot / "onnx").mkdir(parents=True)
+    (blobs / "b1").write_bytes(b"model")
+    (blobs / "b2").write_bytes(b"weights")
+    (blobs / "b3").write_text("{}")
+    (snapshot / "onnx" / "model.onnx").symlink_to("../../../blobs/b1")
+    (snapshot / "onnx" / "model.onnx_data").symlink_to("../../../blobs/b2")
+    (snapshot / "config.json").symlink_to("../../blobs/b3")
+    monkeypatch.setattr(utils_optimum, "HUGGINGFACE_HUB_CACHE", (tmp_path / "hub").as_posix())
+    monkeypatch.setattr(utils_optimum, "snapshot_download", lambda *a, **k: snapshot.as_posix())
+
+    target = Path(utils_optimum.symlink_free_model_dir(MODEL, "onnx/model.onnx", None))
+
+    assert target == tmp_path / "hub" / "infinity_onnx" / "materialized" / MODEL / "abc123"
+    for rel, content in [
+        ("onnx/model.onnx", b"model"),
+        ("onnx/model.onnx_data", b"weights"),
+        ("config.json", b"{}"),
+    ]:
+        assert not (target / rel).is_symlink()
+        assert (target / rel).read_bytes() == content
+    assert (target / "onnx" / "model.onnx_data").stat().st_ino == (blobs / "b2").stat().st_ino
+
+
+def test_symlink_free_model_dir_keeps_local_and_plain_paths(monkeypatch, tmp_path):
+    local = tmp_path / "local-model"
+    local.mkdir()
+    assert (
+        utils_optimum.symlink_free_model_dir(local.as_posix(), "model.onnx", None)
+        == local.as_posix()
+    )
+
+    plain = tmp_path / "plain-snapshot"
+    plain.mkdir()
+    (plain / "model.onnx").write_bytes(b"x")
+    monkeypatch.setattr(utils_optimum, "snapshot_download", lambda *a, **k: plain.as_posix())
+    assert utils_optimum.symlink_free_model_dir(MODEL, "model.onnx", None) == plain.as_posix()
 
 
 def _cache_optimized_file(tmp_path):
@@ -69,6 +113,20 @@ def test_broken_cached_optimized_model_falls_back(recording_model, tmp_path):
         "model_optimized.onnx",
         "model.onnx",
     ]
+
+
+def test_onnx_file_in_subfolder_is_split(recording_model):
+    optimize_model(
+        MODEL,
+        model_class=recording_model,
+        execution_provider=PROVIDER,
+        file_name="onnx/model_quantized.onnx",
+        optimize_model=False,
+    )
+
+    call = recording_model.calls[0]
+    assert call["file_name"] == "model_quantized.onnx"
+    assert call["subfolder"] == "onnx"
 
 
 def test_provider_options_are_forwarded(recording_model):

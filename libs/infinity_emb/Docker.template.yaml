@@ -14,7 +14,7 @@ nvidia:
     ENV NVIDIA_DISABLE_REQUIRE=true
 cpu:
   # 2. command: jinja2 Dockerfile.jinja2 Docker.template.yaml --format=yaml -s cpu > Dockerfile.cpu_auto
-  base_image: "ubuntu:22.04"
+  base_image: "ubuntu:24.04"
   # pyproject_sed: |
   #   RUN sed -i 's|torch = "2.4.1"|torch = "2.5.0"|' pyproject.toml
   #   RUN sed -i 's|"pypi"|"pytorch_cpu"|' pyproject.toml
@@ -24,7 +24,7 @@ cpu:
     # "RUN poetry install --no-interaction --no-ansi --no-root --extras \"${EXTRAS}\" --without lint,test && poetry cache clear pypi --all"
     COPY requirements_install_from_poetry.sh requirements_install_from_poetry.sh
     RUN ./requirements_install_from_poetry.sh --no-root --without lint,test "https://download.pytorch.org/whl/cpu"
-    RUN if [ "$(uname -m)" = "x86_64" ]; then poetry run python -m pip install --no-cache-dir onnxruntime-openvino; else echo "onnxruntime-openvino not available on $(uname -m), skipping"; fi
+    RUN if [ "$(uname -m)" = "x86_64" ]; then poetry run python -m pip install --no-cache-dir "onnxruntime-openvino==1.24.1"; else echo "onnxruntime-openvino not available on $(uname -m), skipping"; fi
   extra_env_variables: |
     # Sets default to onnx
     ENV INFINITY_ENGINE="optimum"

@@ -24,6 +24,7 @@ from infinity_emb.transformer.quantization.interface import (
     quant_embedding_decorator,
     quant_interface,
 )
+from infinity_emb.transformer.st_compat import replace_underlying_model
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -124,22 +125,28 @@ class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
         self.eval()
         self.engine_args = engine_args
         if engine_args.bettertransformer and attempt_bt:
-            fm.auto_model = to_bettertransformer(
-                fm.auto_model,
-                engine_args,
-                logger,
+            replace_underlying_model(
+                fm,
+                to_bettertransformer(
+                    fm.auto_model,
+                    engine_args,
+                    logger,
+                ),
             )
 
         fm.to(ls.loading_dtype)
 
         if ls.quantization_dtype is not None:
-            fm.auto_model = quant_interface(  # TODO: add ls.quantization_dtype and ls.placement
-                fm.auto_model, engine_args.dtype, device=Device[self.device.type]
+            replace_underlying_model(
+                fm,
+                quant_interface(  # TODO: add ls.quantization_dtype and ls.placement
+                    fm.auto_model, engine_args.dtype, device=Device[self.device.type]
+                ),
             )
 
         if engine_args.compile:
             logger.info("using torch.compile(dynamic=True)")
-            fm.auto_model = torch.compile(fm.auto_model, dynamic=True)
+            replace_underlying_model(fm, torch.compile(fm.auto_model, dynamic=True))
 
     def encode_pre(self, sentences) -> dict[str, "Tensor"]:
         features = self.tokenize(sentences)

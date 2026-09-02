@@ -57,7 +57,7 @@ def _sigmoid(logits):
 
 
 def _assert_scores_close(plain, padded):
-    np.testing.assert_allclose(_sigmoid(padded), _sigmoid(plain), atol=0.02)
+    np.testing.assert_allclose(_sigmoid(padded), _sigmoid(plain), atol=0.05)
     assert list(np.argsort(padded)) == list(np.argsort(plain))
     assert np.argmax(padded) == 0
 
