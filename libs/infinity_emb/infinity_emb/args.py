@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2023-now michaelfeil
 
+import json
 import sys
 from dataclasses import asdict, dataclass, field
 from itertools import zip_longest
@@ -52,6 +53,8 @@ class EngineArgs:
         served_model_name, str: Defaults to readable name of model_name_or_path.
         pad_to_multiple_of, int: pad every batch to a sequence length that is a
             multiple of this value, 0 disables. Defaults to 0.
+        onnx_provider_options, str: JSON object passed as provider_options to the
+            onnxruntime execution provider. Defaults to "" (none).
     """
 
     model_name_or_path: str = MANAGER.model_id[0]
@@ -73,6 +76,7 @@ class EngineArgs:
     onnx_disable_optimize: bool = MANAGER.onnx_disable_optimize[0]
     onnx_do_not_prefer_quantized: bool = MANAGER.onnx_do_not_prefer_quantized[0]
     pad_to_multiple_of: int = MANAGER.pad_to_multiple_of[0]
+    onnx_provider_options: str = MANAGER.onnx_provider_options[0]
 
     _loading_strategy: Optional[LoadingStrategy] = None
 
@@ -104,6 +108,9 @@ class EngineArgs:
             object.__setattr__(self, "revision", None)
         if self.pad_to_multiple_of < 0:
             raise ValueError(f"pad_to_multiple_of must be >= 0, got {self.pad_to_multiple_of}")
+        if self.onnx_provider_options is None:
+            object.__setattr__(self, "onnx_provider_options", "")
+        self.onnx_provider_options_dict()
         if isinstance(self.vector_disk_cache_path, bool):
             object.__setattr__(
                 self,
@@ -138,6 +145,19 @@ class EngineArgs:
     def to_dict(self):
         return asdict(self)
 
+    def onnx_provider_options_dict(self) -> dict:
+        if not self.onnx_provider_options:
+            return {}
+        try:
+            options = json.loads(self.onnx_provider_options)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"onnx_provider_options is not valid JSON: {e}") from e
+        if not isinstance(options, dict):
+            raise TypeError(
+                f"onnx_provider_options must be a JSON object, got {type(options).__name__}"
+            )
+        return options
+
     def update_loading_strategy(self):
         """Assign a device id to the EngineArgs object."""
         from infinity_emb.inference import loading_strategy  # type: ignore
@@ -170,8 +190,9 @@ class EngineArgs:
                 onnx_disable_optimize=onnx_disable_optimize,
                 onnx_do_not_prefer_quantized=onnx_do_not_prefer_quantized,
                 pad_to_multiple_of=pad_to_multiple_of,
+                onnx_provider_options=onnx_provider_options,
             )
-            for model_name_or_path, batch_size, revision, trust_remote_code, engine, model_warmup, device, compile, bettertransformer, dtype, pooling_method, lengths_via_tokenize, embedding_dtype, served_model_name, onnx_disable_optimize, onnx_do_not_prefer_quantized, pad_to_multiple_of in zip_longest(
+            for model_name_or_path, batch_size, revision, trust_remote_code, engine, model_warmup, device, compile, bettertransformer, dtype, pooling_method, lengths_via_tokenize, embedding_dtype, served_model_name, onnx_disable_optimize, onnx_do_not_prefer_quantized, pad_to_multiple_of, onnx_provider_options in zip_longest(
                 MANAGER.model_id,
                 MANAGER.batch_size,
                 MANAGER.revision,
@@ -189,5 +210,6 @@ class EngineArgs:
                 MANAGER.onnx_disable_optimize,
                 MANAGER.onnx_do_not_prefer_quantized,
                 MANAGER.pad_to_multiple_of,
+                MANAGER.onnx_provider_options,
             )
         ]

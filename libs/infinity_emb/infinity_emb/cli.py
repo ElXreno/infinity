@@ -282,6 +282,10 @@ if CHECK_TYPER.is_available:
             **_construct("pad_to_multiple_of"),
             help="Pad every batch to a sequence length that is a multiple of this value, 0 disables. Bounds the number of distinct input shapes, which keeps memory flat on backends that cache kernels per shape (OpenVINO, oneDNN, torch CPU) at the cost of a few percent of extra compute. Suggested: 8-16 for embedders, 32-64 for rerankers.",
         ),
+        onnx_provider_options: list[str] = typer.Option(
+            **_construct("onnx_provider_options"),
+            help="JSON object merged into the provider_options of the onnxruntime execution provider, e.g. '{\"num_of_threads\": 8}' for OpenVINO or '{\"trt_fp16_enable\": false}' for TensorRT. Empty string passes nothing.",
+        ),
     ):
         """Infinity API ♾️  cli v2. MIT License. Copyright (c) 2023-now Michael Feil \n
         \n
@@ -324,6 +328,7 @@ if CHECK_TYPER.is_available:
         onnx_disable_optimize, bool: disable onnx optimization
         onnx_do_not_prefer_quantized, bool: do not prefer quantized onnx model if its available
         pad_to_multiple_of, int: pad batches to a multiple of this sequence length, 0 disables
+        onnx_provider_options, str: JSON object passed as onnxruntime provider_options
         """
         logger.setLevel(log_level.to_int())
         device_id_typed = [DeviceID(d) for d in typer_option_resolve(device_id)]
@@ -348,6 +353,7 @@ if CHECK_TYPER.is_available:
             onnx_disable_optimize=onnx_disable_optimize,
             onnx_do_not_prefer_quantized=onnx_do_not_prefer_quantized,
             pad_to_multiple_of=pad_to_multiple_of,
+            onnx_provider_options=onnx_provider_options,
         )
 
         engine_args = []

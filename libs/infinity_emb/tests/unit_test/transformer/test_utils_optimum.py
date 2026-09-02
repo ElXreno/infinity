@@ -69,3 +69,43 @@ def test_broken_cached_optimized_model_falls_back(recording_model, tmp_path):
         "model_optimized.onnx",
         "model.onnx",
     ]
+
+
+def test_provider_options_are_forwarded(recording_model):
+    optimize_model(
+        MODEL,
+        model_class=recording_model,
+        execution_provider=PROVIDER,
+        file_name="model.onnx",
+        optimize_model=False,
+        provider_options={"num_of_threads": 4},
+    )
+
+    assert recording_model.calls[0]["provider_options"] == {"num_of_threads": 4}
+
+
+def test_empty_provider_options_pass_none(recording_model):
+    optimize_model(
+        MODEL,
+        model_class=recording_model,
+        execution_provider=PROVIDER,
+        file_name="model.onnx",
+        optimize_model=False,
+    )
+
+    assert recording_model.calls[0]["provider_options"] is None
+
+
+def test_provider_options_override_tensorrt_defaults(recording_model):
+    optimize_model(
+        MODEL,
+        model_class=recording_model,
+        execution_provider="TensorrtExecutionProvider",
+        file_name="model.onnx",
+        provider_options={"trt_fp16_enable": False, "trt_max_workspace_size": 1 << 30},
+    )
+
+    options = recording_model.calls[0]["provider_options"]
+    assert options["trt_fp16_enable"] is False
+    assert options["trt_max_workspace_size"] == 1 << 30
+    assert options["trt_cuda_graph_enable"] is True

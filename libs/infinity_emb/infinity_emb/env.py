@@ -278,5 +278,9 @@ class __Infinity_EnvManager:
             self._optional_infinity_var_multiple("pad_to_multiple_of", default=["0"])
         )
 
+    @cached_property
+    def onnx_provider_options(self):
+        return self._optional_infinity_var_multiple("onnx_provider_options", default=[""])
+
 
 MANAGER = __Infinity_EnvManager()

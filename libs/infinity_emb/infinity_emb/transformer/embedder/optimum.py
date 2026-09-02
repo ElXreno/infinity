@@ -57,6 +57,7 @@ class OptimumEmbedder(BaseEmbedder):
             file_name=onnx_file.as_posix(),
             optimize_model=not engine_args.onnx_disable_optimize,
             model_class=ORTModelForFeatureExtraction,
+            provider_options=engine_args.onnx_provider_options_dict(),
         )
         self.model.use_io_binding = False
 

@@ -195,6 +195,17 @@ $ infinity_emb v2 --help
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_PAD_TO_MULTIPLE_… │
 │                                                                                          [default: 0]                │
+│ --onnx-provider-options                                      TEXT                        JSON object merged into the │
+│                                                                                          provider_options of the     │
+│                                                                                          onnxruntime execution       │
+│                                                                                          provider, e.g.              │
+│                                                                                          '{"num_of_threads": 8}' for │
+│                                                                                          OpenVINO or                 │
+│                                                                                          '{"trt_fp16_enable":        │
+│                                                                                          false}' for TensorRT. Empty │
+│                                                                                          string passes nothing.      │
+│                                                                                          [env var:                   │
+│                                                                                          `INFINITY_ONNX_PROVIDER_OP… │
 │ --help                                                                                   Show this message and exit. │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 

@@ -92,6 +92,7 @@ def optimize_model(
     optimize_model=False,
     revision: Optional[str] = None,
     trust_remote_code: bool = True,
+    provider_options: Optional[dict] = None,
 ) -> "OptimizedModel":
     """
     Optimizes, and then loads the model to work best with the execution provider.
@@ -104,7 +105,10 @@ def optimize_model(
         optimize_model (bool, optional): Whether to optimize the model. Defaults to False.
         revision (Optional[str], optional): The revision to use. Defaults to None.
         trust_remote_code (bool, optional): Whether to trust the remote code. Defaults to True.
+        provider_options (Optional[dict], optional): Options forwarded to the execution
+            provider session. Merged over the TensorRT defaults. Defaults to None.
     """
+    provider_options = provider_options or {}
 
     ## If there is no need for optimization
     if execution_provider == "TensorrtExecutionProvider":
@@ -122,6 +126,7 @@ def optimize_model(
                 # int8, not working, needs calibration table.
                 # "trt_int8_use_native_calibration_table": True,
                 # "trt_int8_enable": "quantize" in file_name,
+                **provider_options,
             },
         )
 
@@ -133,6 +138,7 @@ def optimize_model(
             trust_remote_code=trust_remote_code,
             provider=execution_provider,
             file_name=file_name,
+            provider_options=provider_options or None,
         )
 
     ## path to find if model has been optimized
@@ -154,6 +160,7 @@ def optimize_model(
                 trust_remote_code=trust_remote_code,
                 provider=execution_provider,
                 file_name=file_optimized.name,
+                provider_options=provider_options or None,
             )
         except Exception as e:
             logger.warning(
@@ -168,6 +175,7 @@ def optimize_model(
         trust_remote_code=trust_remote_code,
         provider=execution_provider,
         file_name=file_name,
+        provider_options=provider_options or None,
     )
     if not optimize_model or execution_provider == "TensorrtExecutionProvider":
         return unoptimized_model
@@ -201,6 +209,7 @@ def optimize_model(
             trust_remote_code=trust_remote_code,
             provider=execution_provider,
             file_name=Path(file_name).name.replace(".onnx", OPTIMIZED_SUFFIX),
+            provider_options=provider_options or None,
         )
     except Exception as e:
         logger.warning(f"Optimization failed with {e}. Going to use the unoptimized model.")

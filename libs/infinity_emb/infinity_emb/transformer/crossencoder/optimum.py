@@ -45,6 +45,7 @@ class OptimumCrossEncoder(BaseCrossEncoder):
             model_class=ORTModelForSequenceClassification,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,
+            provider_options=engine_args.onnx_provider_options_dict(),
         )
         self.model.use_io_binding = False
         self.tokenizer = AutoTokenizer.from_pretrained(

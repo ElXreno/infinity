@@ -69,6 +69,16 @@ def test_engine_args_pad_to_multiple_of():
         EngineArgs(pad_to_multiple_of=-1)
 
 
+def test_engine_args_onnx_provider_options():
+    assert EngineArgs().onnx_provider_options_dict() == {}
+    args = EngineArgs(onnx_provider_options='{"num_of_threads": 8, "load_config": "{}"}')
+    assert args.onnx_provider_options_dict() == {"num_of_threads": 8, "load_config": "{}"}
+    with pytest.raises(ValueError):
+        EngineArgs(onnx_provider_options="not json")
+    with pytest.raises(TypeError):
+        EngineArgs(onnx_provider_options="[1, 2]")
+
+
 class _Tokenizer:
     pad_token_id = 7
 
