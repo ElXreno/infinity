@@ -51,6 +51,34 @@ class EngineUnhealthyError(RuntimeError):
     """Raised when a batching engine can no longer complete accepted requests."""
 
 
+def describe_failure(error: BaseException) -> str:
+    parts = [str(error)]
+    cause = error.__cause__ or error.__context__
+    while cause is not None and str(cause) not in parts:
+        parts.append(str(cause))
+        cause = cause.__cause__ or cause.__context__
+    return ": ".join(parts)
+
+
+def logits_to_probabilities(
+    classifications: list["ClassifyReturnType"], activation: str = "softmax"
+) -> list["ClassifyReturnType"]:
+    if activation == "none":
+        return classifications
+    for prediction in classifications:
+        logits = np.array([label["score"] for label in prediction], dtype=np.float64)
+        if activation == "sigmoid":
+            probs = 1.0 / (1.0 + np.exp(-logits))
+        elif activation == "softmax":
+            exp = np.exp(logits - logits.max())
+            probs = exp / exp.sum()
+        else:
+            raise ValueError(f"unknown classification activation {activation!r}")
+        for label, prob in zip(prediction, probs):
+            label["score"] = float(prob)
+    return classifications
+
+
 class ShutdownReadOnly:
     def __init__(self, shutdown: threading.Event) -> None:
         self._shutdown = shutdown
@@ -275,13 +303,7 @@ class BatchHandler:
         classifications, usage = await self._schedule(items)
 
         if not raw_scores:
-            # the model returns raw logits; convert them to probabilities
-            for prediction in classifications:
-                logits = np.array([label["score"] for label in prediction])
-                exp = np.exp(logits - logits.max())
-                probs = exp / exp.sum()
-                for label, prob in zip(prediction, probs):
-                    label["score"] = float(prob)
+            logits_to_probabilities(classifications, self.model_worker[0].classification_activation)
 
         return classifications, usage
 
@@ -396,7 +418,7 @@ class BatchHandler:
             self._healthy = False
             self._shutdown.set()
 
-        failure = EngineUnhealthyError(f"batching engine failed: {error}")
+        failure = EngineUnhealthyError(f"batching engine failed: {describe_failure(error)}")
         logger.error("%s", failure)
         self.loop.call_soon_threadsafe(self._fail_inflight, failure)
 
@@ -510,7 +532,7 @@ class BatchHandler:
                             continue
         except Exception as ex:
             logger.exception(ex)
-            raise ValueError("Postprocessor crashed")
+            raise ValueError("Postprocessor crashed") from ex
 
     @staticmethod
     async def _subscribe_to_model(
@@ -548,7 +570,7 @@ class BatchHandler:
                 result_queue.task_done()
         except Exception as ex:
             logger.exception(ex)
-            raise ValueError("_subscribe_to_model crashed")
+            raise ValueError("_subscribe_to_model crashed") from ex
 
     async def spawn(self):
         """spawns the resources"""
@@ -613,6 +635,10 @@ class ModelWorker:
         self._verbose = verbose
         self._ready = False
 
+    @property
+    def classification_activation(self) -> str:
+        return getattr(self._model, "classification_activation", "softmax")
+
     def spawn(self):
         if self._ready:
             raise ValueError("already spawned")
@@ -676,7 +702,7 @@ class ModelWorker:
                         continue
         except Exception as ex:
             logger.exception(ex)
-            raise ValueError("_preprocess_batch crashed")
+            raise ValueError("_preprocess_batch crashed") from ex
         finally:
             self._ready = False
 
@@ -706,7 +732,7 @@ class ModelWorker:
                 self._feature_queue.task_done()
         except Exception as ex:
             logger.exception(ex)
-            raise ValueError("_core_batch crashed.")
+            raise ValueError("_core_batch crashed.") from ex
 
     def _postprocess_batch(self):
         """collecting forward(.encode) results and put them into the output queue store"""
@@ -742,4 +768,4 @@ class ModelWorker:
                 self._postprocess_queue.task_done()
         except Exception as ex:
             logger.exception(ex)
-            raise ValueError("Postprocessor crashed")
+            raise ValueError("Postprocessor crashed") from ex
