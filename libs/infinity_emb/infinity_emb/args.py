@@ -50,6 +50,8 @@ class EngineArgs:
         pooling_method, PoolingMethod or str: pooling method to use. Defaults to PoolingMethod.auto.
         lengths_via_tokenize, bool: schedule by token usage. Defaults to False.
         served_model_name, str: Defaults to readable name of model_name_or_path.
+        pad_to_multiple_of, int: pad every batch to a sequence length that is a
+            multiple of this value, 0 disables. Defaults to 0.
     """
 
     model_name_or_path: str = MANAGER.model_id[0]
@@ -70,6 +72,7 @@ class EngineArgs:
     served_model_name: str = MANAGER.served_model_name[0]
     onnx_disable_optimize: bool = MANAGER.onnx_disable_optimize[0]
     onnx_do_not_prefer_quantized: bool = MANAGER.onnx_do_not_prefer_quantized[0]
+    pad_to_multiple_of: int = MANAGER.pad_to_multiple_of[0]
 
     _loading_strategy: Optional[LoadingStrategy] = None
 
@@ -99,6 +102,8 @@ class EngineArgs:
             )
         if self.revision is not None and self.revision == "":
             object.__setattr__(self, "revision", None)
+        if self.pad_to_multiple_of < 0:
+            raise ValueError(f"pad_to_multiple_of must be >= 0, got {self.pad_to_multiple_of}")
         if isinstance(self.vector_disk_cache_path, bool):
             object.__setattr__(
                 self,
@@ -163,9 +168,10 @@ class EngineArgs:
                 embedding_dtype=embedding_dtype,
                 served_model_name=served_model_name,
                 onnx_disable_optimize=onnx_disable_optimize,
-                onnx_do_not_prefer_quantized=onnx_do_not_prefer_quantized
+                onnx_do_not_prefer_quantized=onnx_do_not_prefer_quantized,
+                pad_to_multiple_of=pad_to_multiple_of,
             )
-            for model_name_or_path, batch_size, revision, trust_remote_code, engine, model_warmup, device, compile, bettertransformer, dtype, pooling_method, lengths_via_tokenize, embedding_dtype, served_model_name,onnx_disable_optimize,onnx_do_not_prefer_quantized in zip_longest(
+            for model_name_or_path, batch_size, revision, trust_remote_code, engine, model_warmup, device, compile, bettertransformer, dtype, pooling_method, lengths_via_tokenize, embedding_dtype, served_model_name, onnx_disable_optimize, onnx_do_not_prefer_quantized, pad_to_multiple_of in zip_longest(
                 MANAGER.model_id,
                 MANAGER.batch_size,
                 MANAGER.revision,
@@ -181,6 +187,7 @@ class EngineArgs:
                 MANAGER.embedding_dtype,
                 MANAGER.served_model_name,
                 MANAGER.onnx_disable_optimize,
-                MANAGER.onnx_do_not_prefer_quantized
+                MANAGER.onnx_do_not_prefer_quantized,
+                MANAGER.pad_to_multiple_of,
             )
         ]

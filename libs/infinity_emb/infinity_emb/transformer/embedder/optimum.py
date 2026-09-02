@@ -10,6 +10,7 @@ from infinity_emb.args import EngineArgs
 from infinity_emb.primitives import EmbeddingReturnType, PoolingMethod
 from infinity_emb.transformer.abstract import BaseEmbedder
 from infinity_emb.transformer.quantization.interface import quant_embedding_decorator
+from infinity_emb.transformer.padding import padding_bucket
 from infinity_emb.transformer.utils_optimum import (
     cls_token_pooling,
     device_to_onnx,
@@ -73,10 +74,14 @@ class OptimumEmbedder(BaseEmbedder):
         self.engine_args = engine_args
 
     def encode_pre(self, sentences: list[str]) -> dict[str, np.ndarray]:
+        pad_to_multiple_of, max_length = padding_bucket(
+            self.config.max_position_embeddings, self.engine_args.pad_to_multiple_of
+        )
         encoded = self.tokenizer(
             sentences,
-            max_length=self.config.max_position_embeddings,
+            max_length=max_length,
             padding=True,
+            pad_to_multiple_of=pad_to_multiple_of,
             truncation="longest_first",
             return_tensors="np",
         )

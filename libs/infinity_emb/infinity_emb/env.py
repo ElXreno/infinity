@@ -271,4 +271,12 @@ class __Infinity_EnvManager:
         return self._to_bool_multiple(
             self._optional_infinity_var_multiple("onnx_do_not_prefer_quantized", default=["false"])
         )
+
+    @cached_property
+    def pad_to_multiple_of(self):
+        return self._to_int_multiple(
+            self._optional_infinity_var_multiple("pad_to_multiple_of", default=["0"])
+        )
+
+
 MANAGER = __Infinity_EnvManager()

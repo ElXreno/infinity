@@ -14,10 +14,12 @@ from infinity_emb.transformer.abstract import BaseCrossEncoder
 from infinity_emb.transformer.quantization.interface import (
     quant_interface,
 )
+from infinity_emb.transformer.padding import padding_bucket
 
 if CHECK_TORCH.is_available and CHECK_SENTENCE_TRANSFORMERS.is_available:
     import torch
     from sentence_transformers import CrossEncoder  # type: ignore[import-untyped]
+    from transformers.tokenization_utils_base import LARGE_INTEGER  # type: ignore[import-untyped]
 else:
 
     class CrossEncoder:  # type: ignore[no-redef]
@@ -69,6 +71,7 @@ class CrossEncoderPatched(CrossEncoder, BaseCrossEncoder):
         # without corrupting the original.
 
         self._infinity_tokenizer = copy.deepcopy(self.tokenizer)
+        self.engine_args = engine_args
         self.model.eval()  # type: ignore
         if engine_args.bettertransformer and attempt_bt:
             self.model = to_bettertransformer(
@@ -92,8 +95,18 @@ class CrossEncoderPatched(CrossEncoder, BaseCrossEncoder):
         # return input_tuples
         texts = [[t[0].strip(), t[1].strip()] for t in input_tuples]
 
+        pad_to_multiple_of, max_length = None, None
+        if self.engine_args.pad_to_multiple_of and self.tokenizer.model_max_length < LARGE_INTEGER:
+            pad_to_multiple_of, max_length = padding_bucket(
+                self.tokenizer.model_max_length, self.engine_args.pad_to_multiple_of
+            )
         tokenized = self.tokenizer(
-            texts, padding=True, truncation="longest_first", return_tensors="pt"
+            texts,
+            max_length=max_length,
+            padding=True,
+            pad_to_multiple_of=pad_to_multiple_of,
+            truncation="longest_first",
+            return_tensors="pt",
         )
         return tokenized
 

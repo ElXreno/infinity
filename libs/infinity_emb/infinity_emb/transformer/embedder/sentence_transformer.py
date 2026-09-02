@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -49,6 +49,37 @@ if CHECK_TORCH.is_available:
         torch._inductor.config.fx_graph_cache = True
     except Exception:
         pass
+
+
+def pad_features_to_multiple_of(
+    features: dict[str, "Tensor"],
+    multiple: int,
+    tokenizer,
+    max_length: Optional[int] = None,
+) -> dict[str, "Tensor"]:
+    """Extends the sequence axis of already padded tokenizer output up to a multiple.
+
+    `sentence_transformers.tokenize` does not forward `pad_to_multiple_of`, so the
+    extra pad columns are appended here, honoring the tokenizer's padding side.
+    The result never exceeds `max_length`: models with absolute position
+    embeddings index out of range past `max_position_embeddings`.
+    """
+    seq_len = features["input_ids"].shape[1]
+    target = seq_len + (-seq_len % multiple)
+    if max_length is not None:
+        target = min(target, max_length)
+    extra = target - seq_len
+    if extra <= 0:
+        return features
+    pad = (extra, 0) if tokenizer.padding_side == "left" else (0, extra)
+    padded = {}
+    for key, value in features.items():
+        if value.ndim == 2 and value.shape[1] == seq_len:
+            fill = tokenizer.pad_token_id if key == "input_ids" else 0
+            padded[key] = torch.nn.functional.pad(value, pad, value=fill)
+        else:
+            padded[key] = value
+    return padded
 
 
 class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
@@ -112,6 +143,13 @@ class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
 
     def encode_pre(self, sentences) -> dict[str, "Tensor"]:
         features = self.tokenize(sentences)
+        if self.engine_args.pad_to_multiple_of:
+            features = pad_features_to_multiple_of(
+                features,
+                self.engine_args.pad_to_multiple_of,
+                self._first_module().tokenizer,
+                max_length=self.max_seq_length,
+            )
         return features
 
     def encode_core(self, features: dict[str, "Tensor"]) -> "Tensor":

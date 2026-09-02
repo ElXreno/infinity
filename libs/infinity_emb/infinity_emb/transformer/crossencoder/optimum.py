@@ -8,6 +8,7 @@ import numpy as np
 from infinity_emb._optional_imports import CHECK_ONNXRUNTIME
 from infinity_emb.args import EngineArgs
 from infinity_emb.transformer.abstract import BaseCrossEncoder
+from infinity_emb.transformer.padding import padding_bucket
 from infinity_emb.transformer.utils_optimum import (
     device_to_onnx,
     get_onnx_files,
@@ -57,12 +58,17 @@ class OptimumCrossEncoder(BaseCrossEncoder):
             trust_remote_code=engine_args.trust_remote_code,
         )
         self._infinity_tokenizer = copy.deepcopy(self.tokenizer)
+        self.engine_args = engine_args
 
     def encode_pre(self, queries_docs: list[tuple[str, str]]) -> dict[str, np.ndarray]:
+        pad_to_multiple_of, max_length = padding_bucket(
+            self.config.max_position_embeddings, self.engine_args.pad_to_multiple_of
+        )
         encoded = self.tokenizer(
             queries_docs,
-            max_length=self.config.max_position_embeddings,
+            max_length=max_length,
             padding=True,
+            pad_to_multiple_of=pad_to_multiple_of,
             truncation="longest_first",
             return_tensors="np",
             return_token_type_ids=False,
