@@ -77,7 +77,7 @@ class OptimumCrossEncoder(BaseCrossEncoder):
         )
 
         def pair_max_length(limit: RerankLimits) -> int:
-            if (limit.max_pair_tokens or 0) > 0:
+            if limit.max_pair_tokens:
                 return min(limit.max_pair_tokens, model_max)
             return model_max
 

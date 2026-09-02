@@ -60,9 +60,7 @@ def describe_failure(error: BaseException) -> str:
     return ": ".join(parts)
 
 
-def logits_to_probabilities(
-    classifications: list["ClassifyReturnType"], activation: str = "softmax"
-) -> list["ClassifyReturnType"]:
+def logits_to_probabilities(classifications: list[Any], activation: str = "softmax") -> list[Any]:
     if activation == "none":
         return classifications
     for prediction in classifications:
@@ -265,7 +263,7 @@ class BatchHandler:
 
         if not raw_scores:
             # perform sigmoid on scores
-            scores = 1 / (1 + np.exp(-np.array(scores)))
+            scores = (1 / (1 + np.exp(-np.array(scores)))).tolist()
 
         results = [
             RerankReturnType(relevance_score=scores[i], index=i, document=docs[i])

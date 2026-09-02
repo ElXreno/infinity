@@ -124,14 +124,13 @@ class TorchAudioModel(BaseAudioEmbedModel):
         return text_embeds, audio_embeds, type_is_audio
 
     @quant_embedding_decorator()
-    def encode_post(self, out_features) -> list[float]:
+    def encode_post(self, out_features) -> list[Any]:
         text_embeds, audio_embeds, type_is_audio = out_features
         text_embeds = self._normalize_cpu(text_embeds)
         audio_embeds = self._normalize_cpu(audio_embeds)
 
-        embeddings = list(
-            next(audio_embeds if is_audio else text_embeds) for is_audio in type_is_audio
-        )
+        text_iter, audio_iter = iter(text_embeds), iter(audio_embeds)
+        embeddings = [next(audio_iter if is_audio else text_iter) for is_audio in type_is_audio]
 
         return embeddings
 

@@ -168,7 +168,7 @@ def create_server(
         Returns:
             dict(unix=float): dict with unix time stamp
         """
-        if not all(engine.is_healthy() for engine in app.engine_array.engines_dict.values()):
+        if not all(engine.is_healthy() for engine in app.engine_array.engines_dict.values()):  # type: ignore
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="one or more model engines are unavailable",

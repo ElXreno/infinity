@@ -22,6 +22,7 @@ from infinity_emb.primitives import (
     PredictSingle,
     ReRankInner,
     ReRankSingle,
+    RerankLimits,
 )
 from infinity_emb.transformer.quantization.interface import quant_embedding_decorator
 
@@ -200,7 +201,7 @@ class BaseCrossEncoder(BaseTransformer):  # Inherit from ABC(Abstract base class
     capabilities = {"rerank"}
 
     @abstractmethod  # Decorator to define an abstract method
-    def encode_pre(self, queries_docs: list[tuple[str, str]]) -> INPUT_FEATURE:
+    def encode_pre(self, queries_docs: list[tuple[str, str, RerankLimits]]) -> INPUT_FEATURE:
         """takes care of the tokenization and feature preparation"""
 
     @abstractmethod

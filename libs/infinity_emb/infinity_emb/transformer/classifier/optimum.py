@@ -2,6 +2,7 @@
 # Copyright (c) 2023-now michaelfeil
 
 import copy
+from typing import Any
 
 from infinity_emb._optional_imports import CHECK_ONNXRUNTIME, CHECK_TRANSFORMERS
 from infinity_emb.args import EngineArgs
@@ -72,7 +73,7 @@ class OptimumClassifier(BaseClassifer):
     def encode_pre(self, sentences: list[str]):
         return sentences
 
-    def encode_core(self, sentences: list[str]) -> dict:
+    def encode_core(self, sentences: list[str]) -> list[Any]:
         outputs = self._pipe(sentences, function_to_apply="none")
         return outputs
 

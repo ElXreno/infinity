@@ -9,8 +9,9 @@ from concurrent.futures import Future
 from functools import partial
 from typing import (
     TYPE_CHECKING,
-    Awaitable,
+    Any,
     Callable,
+    Coroutine,
     Iterator,
     Optional,
     TypeVar,
@@ -89,7 +90,7 @@ class _AsyncLifeMixin:
 
     def async_run(
         self,
-        async_function: Callable[..., Awaitable[T]],
+        async_function: Callable[..., Coroutine[Any, Any, T]],
         *funcion_args,
         **function_kwargs,
     ) -> Future[T]:
@@ -118,7 +119,7 @@ class WeakAsyncLifeMixin:
 
     def async_run(
         self,
-        async_function: Callable[..., Awaitable[T]],
+        async_function: Callable[..., Coroutine[Any, Any, T]],
         *funcion_args,
         **function_kwargs,
     ) -> Future[T]:

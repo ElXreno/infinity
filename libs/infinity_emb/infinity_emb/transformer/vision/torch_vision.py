@@ -38,12 +38,12 @@ class TIMM(BaseTIMM):
     def __init__(self, *, engine_args: "EngineArgs"):
         CHECK_TORCH.mark_required()
         CHECK_TRANSFORMERS.mark_required()
+        model_name = engine_args.model_name_or_path
         base_config = dict(
-            pretrained_model_name_or_path=engine_args.model_name_or_path,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,
         )
-        config = AutoConfig.from_pretrained(**base_config)
+        config = AutoConfig.from_pretrained(model_name, **base_config)
         self.is_colipali = config.architectures[0] in IMAGE_COL_MODELS
         self.mock_image = Image.new("RGB", (128, 128), color="black")
 
@@ -85,19 +85,23 @@ class TIMM(BaseTIMM):
             }[config.architectures[0]]
 
             self.model = model_cls.from_pretrained(
+                model_name,
                 **extra_model_args,
             )
 
             self.processor = processor_cls.from_pretrained(
+                model_name,
                 **extra_processor_args,
             )
         else:
             self.model = AutoModel.from_pretrained(
-                **extra_model_args
+                model_name,
+                **extra_model_args,
                 # attn_implementation="eager" if engine_args.bettertransformer else None,
             )
 
             self.processor = AutoProcessor.from_pretrained(
+                model_name,
                 **extra_processor_args,
             )
             assert hasattr(
@@ -216,12 +220,13 @@ class TIMM(BaseTIMM):
         return text_embeds, image_embeds, type_is_img  # type: ignore
 
     @quant_embedding_decorator()
-    def encode_post(self, out_features) -> list[float]:
+    def encode_post(self, out_features) -> list[Any]:
         text_embeds, image_embeds, type_is_img = out_features
         text_embeds = self._normalize_cpu(text_embeds, normalize=not self.is_colipali)
         image_embeds = self._normalize_cpu(image_embeds, normalize=not self.is_colipali)
 
-        embeddings = list(next(image_embeds if is_img else text_embeds) for is_img in type_is_img)
+        text_iter, image_iter = iter(text_embeds), iter(image_embeds)
+        embeddings = [next(image_iter if is_img else text_iter) for is_img in type_is_img]
         return embeddings
 
     def tokenize_lengths(self, text_list: list[str]) -> list[int]:
