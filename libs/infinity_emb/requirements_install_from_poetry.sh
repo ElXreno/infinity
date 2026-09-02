@@ -85,10 +85,12 @@ if [ -z "$TORCH_VERSION" ]; then
     exit 1
 fi
 
-# Remove lines containing 'torch', 'nvidia', and 'triton' from requirements.txt
+# Remove lines containing 'torch', 'nvidia', 'cuda' and 'triton' from requirements.txt
+# torch >= 2.10 depends on the cuda-toolkit meta package instead of nvidia-* wheels
 sed -i '/^torch==/d' requirements.txt
 sed -i '/torchvision/d' requirements.txt
 sed -i '/nvidia/d' requirements.txt
+sed -i '/^cuda-/d' requirements.txt
 sed -i '/triton/d' requirements.txt
 
 # Step 5: Install torch with the extracted version and other dependencies
