@@ -6,6 +6,7 @@ import copy
 from infinity_emb._optional_imports import CHECK_ONNXRUNTIME, CHECK_TRANSFORMERS
 from infinity_emb.args import EngineArgs
 from infinity_emb.transformer.abstract import BaseClassifer
+from infinity_emb.transformer.classifier import classification_activation
 from infinity_emb.transformer.utils_optimum import (
     device_to_onnx,
     get_onnx_files,
@@ -49,6 +50,7 @@ class OptimumClassifier(BaseClassifer):
             provider_options=engine_args.onnx_provider_options_dict(),
         )
         model.use_io_binding = False
+        self.classification_activation = classification_activation(model.config)
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             engine_args.model_name_or_path,

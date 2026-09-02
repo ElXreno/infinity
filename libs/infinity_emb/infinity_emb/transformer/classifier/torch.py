@@ -9,6 +9,7 @@ from infinity_emb.transformer.acceleration import (
     to_bettertransformer,
     check_if_bettertransformer_possible,
 )
+from infinity_emb.transformer.classifier import classification_activation
 from infinity_emb.transformer.quantization.interface import quant_interface
 from infinity_emb.primitives import Device
 
@@ -64,6 +65,7 @@ class SentenceClassifier(BaseClassifer):
         )
 
         _set_pad_token_id_if_missing(self._pipe.model, self._pipe.tokenizer)
+        self.classification_activation = classification_activation(self._pipe.model.config)
 
         if ls.quantization_dtype is not None:
             self._pipe.model = quant_interface(  # TODO: add ls.quantization_dtype and ls.placement

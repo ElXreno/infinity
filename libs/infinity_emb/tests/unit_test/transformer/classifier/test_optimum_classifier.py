@@ -1,6 +1,7 @@
 from transformers.pipelines import pipeline  # type: ignore
 from infinity_emb.args import EngineArgs
 
+from infinity_emb.inference.batch_handler import logits_to_probabilities
 from infinity_emb.transformer.classifier.optimum import OptimumClassifier
 
 
@@ -21,7 +22,7 @@ def test_classifier(model_name: str = "SamLowe/roberta-base-go_emotions-onnx"):
 
     encode_pre = model.encode_pre(sentences)
     encode_core = model.encode_core(encode_pre)
-    preds = model.encode_post(encode_core)
+    preds = logits_to_probabilities(model.encode_post(encode_core), model.classification_activation)
 
     assert len(preds) == len(sentences)
     assert isinstance(preds, list)
