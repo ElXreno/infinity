@@ -56,11 +56,6 @@ class WrongResultModel(FailingCoreModel):
 
 
 @pytest.fixture
-@pytest.mark.anyio
-@pytest.mark.skipif(
-    sys.version_info >= (3, 12) and sys.platform in ["win32", "darwin"],
-    reason="windows and macos are not stable with python3.12",
-)
 async def load_patched_bh() -> tuple[SentenceTransformerPatched, BatchHandler]:
     model = SentenceTransformerPatched(
         engine_args=EngineArgs(
@@ -133,6 +128,10 @@ async def test_result_length_mismatch_completes_waiting_requests():
 
 @pytest.mark.performance
 @pytest.mark.anyio
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12) and sys.platform in ["win32", "darwin"],
+    reason="windows and macos are not stable with python3.12",
+)
 async def test_batch_performance_raw(get_sts_bechmark_dataset, load_patched_bh):
     model, bh = load_patched_bh
     assert bh.capabilities == {"embed"}
