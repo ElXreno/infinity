@@ -147,13 +147,20 @@ def optimize_model(
     if files_optimized and optimize_model:
         file_optimized = files_optimized[-1]
         logger.info(f"Optimized model found at {file_optimized}, skipping optimization")
-        return model_class.from_pretrained(
-            file_optimized.parent.as_posix(),
-            revision=revision,
-            trust_remote_code=trust_remote_code,
-            provider=execution_provider,
-            file_name=file_optimized.name,
-        )
+        try:
+            return model_class.from_pretrained(
+                file_optimized.parent.as_posix(),
+                revision=revision,
+                trust_remote_code=trust_remote_code,
+                provider=execution_provider,
+                file_name=file_optimized.name,
+            )
+        except Exception as e:
+            logger.warning(
+                f"Loading the optimized model {file_optimized} failed with {e}. "
+                "Going to use the unoptimized model."
+            )
+            optimize_model = False
 
     unoptimized_model = model_class.from_pretrained(
         model_name_or_path,
