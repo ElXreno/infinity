@@ -15,6 +15,11 @@ on:
         required: false
         type: string
         default: "--extras all --with test"
+      python-versions:
+        description: 'JSON list of Python versions for the testing job (the initial job runs on 3.12)'
+        required: false
+        type: string
+        default: '["3.10", "3.11"]'
 
 
 env:
@@ -101,9 +106,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest] # macos-latest
-        python-version:
-          - "3.10"
-          - "3.11"
+        python-version: ${{ fromJSON(inputs.python-versions) }}
         coverage_tests: ["unit_test", "end_to_end"]
           
     runs-on: ${{ matrix.os }}

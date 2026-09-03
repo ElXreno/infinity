@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: "--extras all --with test,lint,codespell"
+      python-versions:
+        description: 'JSON list of Python versions to lint on'
+        required: false
+        type: string
+        default: '["3.12", "3.13"]'
 
 env:
   POETRY_VERSION: "1.8.4"
@@ -33,9 +38,7 @@ jobs:
         # GitHub rate-limits how many jobs can be running at any one time.
         # Starting new jobs is also relatively slow,
         # so linting on fewer versions makes CI faster.
-        python-version:
-          - "3.12"
-          - "3.13"
+        python-version: ${{ fromJSON(inputs.python-versions) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

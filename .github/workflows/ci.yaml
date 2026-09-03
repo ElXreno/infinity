@@ -44,6 +44,7 @@ jobs:
     with:
       working-directory: libs/embed_package
       extra_poetry: "--with test,lint,codespell"
+      python-versions: '["3.12"]'
     secrets: inherit
 
   test-infinity_emb:
@@ -52,6 +53,7 @@ jobs:
     with:
       working-directory: libs/infinity_emb
       upload_coverage: true
+      python-versions: '["3.13"]'
     secrets: inherit
   
   test-embed_package:
