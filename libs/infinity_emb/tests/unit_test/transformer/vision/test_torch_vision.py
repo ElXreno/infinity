@@ -8,7 +8,7 @@ from infinity_emb.args import EngineArgs
 from infinity_emb.transformer.vision.torch_vision import TIMM
 
 
-@pytest.mark.parametrize("model_name", ["default", "google/siglip-so400m-patch14-384"])
+@pytest.mark.parametrize("model_name", ["default", "google/siglip-base-patch16-224"])
 def test_clip_like_model(image_sample, model_name: str):
     if model_name == "default":
         model_name = pytest.DEFAULT_IMAGE_MODEL
@@ -119,6 +119,6 @@ if __name__ == "__main__":
     pytest.IMAGE_SAMPLE_URL = "https://github.com/michaelfeil/infinity/raw/06fd1f4d8f0a869f4482fc1c78b62a75ccbb66a1/docs/assets/cats_coco_sample.jpg"
 
     test_clip_like_model(
-        [requests.get(pytest.IMAGE_SAMPLE_URL, stream=True)], "google/siglip-so400m-patch14-384"
+        [requests.get(pytest.IMAGE_SAMPLE_URL, stream=True)], "google/siglip-base-patch16-224"
     )  # type: ignore
     test_colpali("auto", [requests.get(pytest.IMAGE_SAMPLE_URL, stream=True)])  # type: ignore

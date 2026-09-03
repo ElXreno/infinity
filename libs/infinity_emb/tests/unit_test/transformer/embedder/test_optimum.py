@@ -5,7 +5,7 @@ from infinity_emb.args import EngineArgs
 from infinity_emb.transformer.embedder.optimum import OptimumEmbedder
 
 
-def test_embedder_optimum(size="large"):
+def test_embedder_optimum(size="small"):
     model = OptimumEmbedder(
         engine_args=EngineArgs(model_name_or_path=f"Xenova/bge-{size}-en-v1.5", device="cpu")
     )
