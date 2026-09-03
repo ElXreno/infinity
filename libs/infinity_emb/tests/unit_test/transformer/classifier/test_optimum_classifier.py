@@ -39,8 +39,10 @@ def test_classifier(model_name: str = "SamLowe/roberta-base-go_emotions-onnx"):
 
     for pred_orig, pred in zip(preds_orig, preds):
         assert len(pred_orig) == len(pred)
-        for pred_orig_i, pred_i in zip(pred_orig[:5], pred[:5]):
-            assert abs(pred_orig_i["score"] - pred_i["score"]) < 0.05
-
-            if pred_orig_i["score"] > 0.005:
-                assert pred_orig_i["label"] == pred_i["label"]
+        # the ONNX repo ships an int8 model: the top class must agree with the fp32
+        # pipeline, the tail classes only within a tolerance (their order depends on
+        # the int8 kernels of the CPU)
+        assert pred_orig[0]["label"] == pred[0]["label"]
+        scores = {p["label"]: p["score"] for p in pred}
+        for pred_orig_i in pred_orig[:5]:
+            assert abs(pred_orig_i["score"] - scores[pred_orig_i["label"]]) < 0.05
