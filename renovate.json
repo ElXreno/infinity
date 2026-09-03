@@ -17,7 +17,8 @@
     },
     {
       "matchManagers": ["github-actions"],
-      "groupName": "github actions"
+      "groupName": "github actions",
+      "schedule": ["at any time"]
     }
   ]
 }
