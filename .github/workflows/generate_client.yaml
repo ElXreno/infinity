@@ -21,7 +21,7 @@ jobs:
       - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
         uses: "./.github/actions/poetry_setup"
         with:
-          python-version: "3.10"
+          python-version: "3.12"
           poetry-version: ${{ env.POETRY_VERSION }}
           cache-key: client-generation
 

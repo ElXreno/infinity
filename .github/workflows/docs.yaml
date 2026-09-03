@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: "3.12"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -31,7 +31,7 @@ jobs:
             mkdocs-material-
       - name: Install infinity_emb with mkdocs
         run: |
-          pip install poetry 
+          pip install "poetry==1.8.5"
           poetry config virtualenvs.create false
           cd libs/infinity_emb && POETRY_VIRTUALENVS_CREATE=false POETRY_VIRTUALENVS_IN_PROJECT=false poetry install --extras "server" --with mkdocs
       - name: get version
