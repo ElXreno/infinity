@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":semanticCommits", ":pinDigests"],
+  "forkProcessing": "enabled",
   "enabledManagers": ["poetry", "github-actions"],
   "timezone": "Europe/Moscow",
   "schedule": ["before 6am on monday"],
