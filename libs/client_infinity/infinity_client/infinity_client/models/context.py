@@ -14,34 +14,21 @@ from ..types import UNSET, Unset
 
 
 
-T = TypeVar("T", bound="ClassifyObject")
+T = TypeVar("T", bound="Context")
 
 
 @_attrs_define
-class ClassifyObject:
+class Context:
     """ 
-        Attributes:
-            score (float):
-            label (str):
      """
 
-    score: float
-    label: str
     additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
 
     def to_dict(self) -> Dict[str, Any]:
-        score = self.score
-
-        label = self.label
-
-
+        
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({
-            "score": score,
-            "label": label,
-        })
 
         return field_dict
 
@@ -50,18 +37,12 @@ class ClassifyObject:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        score = d.pop("score")
-
-        label = d.pop("label")
-
-        classify_object = cls(
-            score=score,
-            label=label,
+        context = cls(
         )
 
 
-        classify_object.additional_properties = d
-        return classify_object
+        context.additional_properties = d
+        return context
 
     @property
     def additional_keys(self) -> List[str]:

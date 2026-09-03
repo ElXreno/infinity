@@ -1,26 +1,39 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, Type, TypeVar, Tuple, Optional, BinaryIO, TextIO, TYPE_CHECKING
+
+from typing import List
+
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..types import UNSET, Unset
+from typing import Union
+from typing import cast, Union
+
+
+
+
+
+
 T = TypeVar("T", bound="ReRankObject")
 
 
 @_attrs_define
 class ReRankObject:
-    """
-    Attributes:
-        relevance_score (float):
-        index (int):
-        document (Union[None, Unset, str]):
-    """
+    """ 
+        Attributes:
+            relevance_score (float):
+            index (int):
+            document (Union[None, Unset, str]):
+     """
 
     relevance_score: float
     index: int
     document: Union[None, Unset, str] = UNSET
     additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
+
 
     def to_dict(self) -> Dict[str, Any]:
         relevance_score = self.relevance_score
@@ -33,18 +46,19 @@ class ReRankObject:
         else:
             document = self.document
 
+
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "relevance_score": relevance_score,
-                "index": index,
-            }
-        )
+        field_dict.update({
+            "relevance_score": relevance_score,
+            "index": index,
+        })
         if document is not UNSET:
             field_dict["document"] = document
 
         return field_dict
+
+
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
@@ -62,11 +76,13 @@ class ReRankObject:
 
         document = _parse_document(d.pop("document", UNSET))
 
+
         re_rank_object = cls(
             relevance_score=relevance_score,
             index=index,
             document=document,
         )
+
 
         re_rank_object.additional_properties = d
         return re_rank_object

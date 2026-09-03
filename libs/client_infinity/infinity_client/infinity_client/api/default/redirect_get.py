@@ -1,18 +1,29 @@
 from http import HTTPStatus
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import httpx
 
-from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...types import Response
+from ...types import Response, UNSET
+from ... import errors
 
 
-def _get_kwargs() -> Dict[str, Any]:
+
+
+def _get_kwargs(
+    
+) -> Dict[str, Any]:
+    
+
+    
+
+    
+
     _kwargs: Dict[str, Any] = {
         "method": "get",
         "url": "/",
     }
+
 
     return _kwargs
 
@@ -38,8 +49,9 @@ def _build_response(*, client: Union[AuthenticatedClient, Client], response: htt
 def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
+
 ) -> Response[Any]:
-    """Redirect
+    """ Redirect
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -47,9 +59,12 @@ def sync_detailed(
 
     Returns:
         Response[Any]
-    """
+     """
 
-    kwargs = _get_kwargs()
+
+    kwargs = _get_kwargs(
+        
+    )
 
     response = client.get_httpx_client().request(
         **kwargs,
@@ -61,8 +76,9 @@ def sync_detailed(
 async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
+
 ) -> Response[Any]:
-    """Redirect
+    """ Redirect
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -70,10 +86,16 @@ async def asyncio_detailed(
 
     Returns:
         Response[Any]
-    """
+     """
 
-    kwargs = _get_kwargs()
 
-    response = await client.get_async_httpx_client().request(**kwargs)
+    kwargs = _get_kwargs(
+        
+    )
+
+    response = await client.get_async_httpx_client().request(
+        **kwargs
+    )
 
     return _build_response(client=client, response=response)
+

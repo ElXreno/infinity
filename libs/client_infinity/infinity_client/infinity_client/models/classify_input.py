@@ -1,41 +1,55 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, Type, TypeVar, Tuple, Optional, BinaryIO, TextIO, TYPE_CHECKING
+
+from typing import List
+
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast, List
+from typing import Union
+from ..types import UNSET, Unset
+
+
+
+
+
+
 T = TypeVar("T", bound="ClassifyInput")
 
 
 @_attrs_define
 class ClassifyInput:
-    """
-    Attributes:
-        input_ (List[str]):
-        model (Union[Unset, str]):  Default: 'default/not-specified'.
-        raw_scores (Union[Unset, bool]):  Default: False.
-    """
+    """ 
+        Attributes:
+            input_ (List[str]):
+            model (Union[Unset, str]):  Default: 'default/not-specified'.
+            raw_scores (Union[Unset, bool]):  Default: False.
+     """
 
     input_: List[str]
-    model: Union[Unset, str] = "default/not-specified"
+    model: Union[Unset, str] = 'default/not-specified'
     raw_scores: Union[Unset, bool] = False
     additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
+
     def to_dict(self) -> Dict[str, Any]:
         input_ = self.input_
+
+
 
         model = self.model
 
         raw_scores = self.raw_scores
 
+
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "input": input_,
-            }
-        )
+        field_dict.update({
+            "input": input_,
+        })
         if model is not UNSET:
             field_dict["model"] = model
         if raw_scores is not UNSET:
@@ -43,10 +57,13 @@ class ClassifyInput:
 
         return field_dict
 
+
+
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
         input_ = cast(List[str], d.pop("input"))
+
 
         model = d.pop("model", UNSET)
 
@@ -57,6 +74,7 @@ class ClassifyInput:
             model=model,
             raw_scores=raw_scores,
         )
+
 
         classify_input.additional_properties = d
         return classify_input

@@ -1,27 +1,45 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Dict, Type, TypeVar, Tuple, Optional, BinaryIO, TextIO, TYPE_CHECKING
+
+from typing import List
+
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+
+from ..types import UNSET, Unset
+
+
+
+
+
+
 
 T = TypeVar("T", bound="ResponseHealth")
 
 
 @_attrs_define
 class ResponseHealth:
-    """ """
+    """ 
+     """
 
     additional_properties: Dict[str, float] = _attrs_field(init=False, factory=dict)
 
+
     def to_dict(self) -> Dict[str, Any]:
+        
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
 
         return field_dict
 
+
+
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        response_health = cls()
+        response_health = cls(
+        )
+
 
         response_health.additional_properties = d
         return response_health

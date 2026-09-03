@@ -1,34 +1,48 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, Type, TypeVar, Tuple, Optional, BinaryIO, TextIO, TYPE_CHECKING
+
+from typing import List
+
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.embedding_encoding_format import EmbeddingEncodingFormat
-from ..models.open_ai_embedding_input_image_modality import OpenAIEmbeddingInputImageModality
 from ..types import UNSET, Unset
+
+from ..models.embedding_encoding_format import EmbeddingEncodingFormat
+from typing import cast, List
+from typing import Union
+from typing import Literal, Union
+from typing import cast, Union
+from ..types import UNSET, Unset
+
+
+
+
+
 
 T = TypeVar("T", bound="OpenAIEmbeddingInputImage")
 
 
 @_attrs_define
 class OpenAIEmbeddingInputImage:
-    """
-    Attributes:
-        input_ (Union[List[str], str]):
-        model (Union[Unset, str]):  Default: 'default/not-specified'.
-        encoding_format (Union[Unset, EmbeddingEncodingFormat]):
-        user (Union[None, Unset, str]):
-        dimensions (Union[Unset, int]):  Default: 0.
-        modality (Union[Unset, OpenAIEmbeddingInputImageModality]):  Default: OpenAIEmbeddingInputImageModality.IMAGE.
-    """
+    """ 
+        Attributes:
+            input_ (Union[List[str], str]):
+            model (Union[Unset, str]):  Default: 'default/not-specified'.
+            encoding_format (Union[Unset, EmbeddingEncodingFormat]):
+            user (Union[None, Unset, str]):
+            dimensions (Union[Unset, int]):  Default: 0.
+            modality (Union[Literal['image'], Unset]):  Default: 'image'.
+     """
 
     input_: Union[List[str], str]
-    model: Union[Unset, str] = "default/not-specified"
+    model: Union[Unset, str] = 'default/not-specified'
     encoding_format: Union[Unset, EmbeddingEncodingFormat] = UNSET
     user: Union[None, Unset, str] = UNSET
     dimensions: Union[Unset, int] = 0
-    modality: Union[Unset, OpenAIEmbeddingInputImageModality] = OpenAIEmbeddingInputImageModality.IMAGE
+    modality: Union[Literal['image'], Unset] = 'image'
     additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
+
 
     def to_dict(self) -> Dict[str, Any]:
         input_: Union[List[str], str]
@@ -39,6 +53,7 @@ class OpenAIEmbeddingInputImage:
                 input_type_0_item = input_type_0_item_data
                 input_.append(input_type_0_item)
 
+
         else:
             input_ = self.input_
 
@@ -48,6 +63,7 @@ class OpenAIEmbeddingInputImage:
         if not isinstance(self.encoding_format, Unset):
             encoding_format = self.encoding_format.value
 
+
         user: Union[None, Unset, str]
         if isinstance(self.user, Unset):
             user = UNSET
@@ -56,17 +72,14 @@ class OpenAIEmbeddingInputImage:
 
         dimensions = self.dimensions
 
-        modality: Union[Unset, str] = UNSET
-        if not isinstance(self.modality, Unset):
-            modality = self.modality.value
+        modality = self.modality
+
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "input": input_,
-            }
-        )
+        field_dict.update({
+            "input": input_,
+        })
         if model is not UNSET:
             field_dict["model"] = model
         if encoding_format is not UNSET:
@@ -80,18 +93,18 @@ class OpenAIEmbeddingInputImage:
 
         return field_dict
 
+
+
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-
         def _parse_input_(data: object) -> Union[List[str], str]:
             try:
                 if not isinstance(data, list):
                     raise TypeError()
                 input_type_0 = []
                 _input_type_0 = data
-                for input_type_0_item_data in _input_type_0:
-
+                for input_type_0_item_data in (_input_type_0):
                     def _parse_input_type_0_item(data: object) -> str:
                         return cast(str, data)
 
@@ -100,20 +113,24 @@ class OpenAIEmbeddingInputImage:
                     input_type_0.append(input_type_0_item)
 
                 return input_type_0
-            except:  # noqa: E722
+            except: # noqa: E722
                 pass
             return cast(Union[List[str], str], data)
 
         input_ = _parse_input_(d.pop("input"))
 
+
         model = d.pop("model", UNSET)
 
         _encoding_format = d.pop("encoding_format", UNSET)
         encoding_format: Union[Unset, EmbeddingEncodingFormat]
-        if isinstance(_encoding_format, Unset):
+        if isinstance(_encoding_format,  Unset):
             encoding_format = UNSET
         else:
             encoding_format = EmbeddingEncodingFormat(_encoding_format)
+
+
+
 
         def _parse_user(data: object) -> Union[None, Unset, str]:
             if data is None:
@@ -124,14 +141,12 @@ class OpenAIEmbeddingInputImage:
 
         user = _parse_user(d.pop("user", UNSET))
 
+
         dimensions = d.pop("dimensions", UNSET)
 
-        _modality = d.pop("modality", UNSET)
-        modality: Union[Unset, OpenAIEmbeddingInputImageModality]
-        if isinstance(_modality, Unset):
-            modality = UNSET
-        else:
-            modality = OpenAIEmbeddingInputImageModality(_modality)
+        modality = cast(Union[Literal['image'], Unset] , d.pop("modality", UNSET))
+        if modality != 'image'and not isinstance(modality, Unset):
+            raise ValueError(f"modality must match const 'image', got '{modality}'")
 
         open_ai_embedding_input_image = cls(
             input_=input_,
@@ -141,6 +156,7 @@ class OpenAIEmbeddingInputImage:
             dimensions=dimensions,
             modality=modality,
         )
+
 
         open_ai_embedding_input_image.additional_properties = d
         return open_ai_embedding_input_image

@@ -1,14 +1,26 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, Type, TypeVar, Tuple, Optional, BinaryIO, TextIO, TYPE_CHECKING
+
+from typing import List
+
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.open_ai_embedding_result_object import OpenAIEmbeddingResultObject
+from ..types import UNSET, Unset
+
+from typing import cast
+from typing import cast, List
+from typing import Literal, Union
+from typing import Dict
+from typing import Union
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.embedding_object import EmbeddingObject
-    from ..models.usage import Usage
+  from ..models.usage import Usage
+  from ..models.embedding_object import EmbeddingObject
+
+
+
 
 
 T = TypeVar("T", bound="OpenAIEmbeddingResult")
@@ -16,51 +28,53 @@ T = TypeVar("T", bound="OpenAIEmbeddingResult")
 
 @_attrs_define
 class OpenAIEmbeddingResult:
-    """
-    Attributes:
-        data (List['EmbeddingObject']):
-        model (str):
-        usage (Usage):
-        object_ (Union[Unset, OpenAIEmbeddingResultObject]):  Default: OpenAIEmbeddingResultObject.LIST.
-        id (Union[Unset, str]):
-        created (Union[Unset, int]):
-    """
+    """ 
+        Attributes:
+            data (List['EmbeddingObject']):
+            model (str):
+            usage (Usage):
+            object_ (Union[Literal['list'], Unset]):  Default: 'list'.
+            id (Union[Unset, str]):
+            created (Union[Unset, int]):
+     """
 
-    data: List["EmbeddingObject"]
+    data: List['EmbeddingObject']
     model: str
-    usage: "Usage"
-    object_: Union[Unset, OpenAIEmbeddingResultObject] = OpenAIEmbeddingResultObject.LIST
+    usage: 'Usage'
+    object_: Union[Literal['list'], Unset] = 'list'
     id: Union[Unset, str] = UNSET
     created: Union[Unset, int] = UNSET
     additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
+
     def to_dict(self) -> Dict[str, Any]:
+        from ..models.usage import Usage
+        from ..models.embedding_object import EmbeddingObject
         data = []
         for data_item_data in self.data:
             data_item = data_item_data.to_dict()
             data.append(data_item)
 
+
+
         model = self.model
 
         usage = self.usage.to_dict()
 
-        object_: Union[Unset, str] = UNSET
-        if not isinstance(self.object_, Unset):
-            object_ = self.object_.value
+        object_ = self.object_
 
         id = self.id
 
         created = self.created
 
+
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "data": data,
-                "model": model,
-                "usage": usage,
-            }
-        )
+        field_dict.update({
+            "data": data,
+            "model": model,
+            "usage": usage,
+        })
         if object_ is not UNSET:
             field_dict["object"] = object_
         if id is not UNSET:
@@ -70,29 +84,33 @@ class OpenAIEmbeddingResult:
 
         return field_dict
 
+
+
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
-        from ..models.embedding_object import EmbeddingObject
         from ..models.usage import Usage
-
+        from ..models.embedding_object import EmbeddingObject
         d = src_dict.copy()
         data = []
         _data = d.pop("data")
-        for data_item_data in _data:
+        for data_item_data in (_data):
             data_item = EmbeddingObject.from_dict(data_item_data)
 
+
+
             data.append(data_item)
+
 
         model = d.pop("model")
 
         usage = Usage.from_dict(d.pop("usage"))
 
-        _object_ = d.pop("object", UNSET)
-        object_: Union[Unset, OpenAIEmbeddingResultObject]
-        if isinstance(_object_, Unset):
-            object_ = UNSET
-        else:
-            object_ = OpenAIEmbeddingResultObject(_object_)
+
+
+
+        object_ = cast(Union[Literal['list'], Unset] , d.pop("object", UNSET))
+        if object_ != 'list'and not isinstance(object_, Unset):
+            raise ValueError(f"object must match const 'list', got '{object_}'")
 
         id = d.pop("id", UNSET)
 
@@ -106,6 +124,7 @@ class OpenAIEmbeddingResult:
             id=id,
             created=created,
         )
+
 
         open_ai_embedding_result.additional_properties = d
         return open_ai_embedding_result

@@ -1,14 +1,25 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, Type, TypeVar, Tuple, Optional, BinaryIO, TextIO, TYPE_CHECKING
+
+from typing import List
+
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.model_info_object import ModelInfoObject
-from ..models.model_info_owned_by import ModelInfoOwnedBy
+from ..types import UNSET, Unset
+
+from typing import cast
+from typing import cast, List
+from typing import Literal, Union
+from typing import Dict
+from typing import Union
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.stats import Stats
+  from ..models.stats import Stats
+
+
+
 
 
 T = TypeVar("T", bound="ModelInfo")
@@ -16,38 +27,36 @@ T = TypeVar("T", bound="ModelInfo")
 
 @_attrs_define
 class ModelInfo:
-    """
-    Attributes:
-        id (str):
-        stats (Stats):
-        object_ (Union[Unset, ModelInfoObject]):  Default: ModelInfoObject.MODEL.
-        owned_by (Union[Unset, ModelInfoOwnedBy]):  Default: ModelInfoOwnedBy.INFINITY.
-        created (Union[Unset, int]):
-        backend (Union[Unset, str]):  Default: ''.
-        capabilities (Union[Unset, List[str]]):
-    """
+    """ 
+        Attributes:
+            id (str):
+            stats (Stats):
+            object_ (Union[Literal['model'], Unset]):  Default: 'model'.
+            owned_by (Union[Literal['infinity'], Unset]):  Default: 'infinity'.
+            created (Union[Unset, int]):
+            backend (Union[Unset, str]):  Default: ''.
+            capabilities (Union[Unset, List[str]]):
+     """
 
     id: str
-    stats: "Stats"
-    object_: Union[Unset, ModelInfoObject] = ModelInfoObject.MODEL
-    owned_by: Union[Unset, ModelInfoOwnedBy] = ModelInfoOwnedBy.INFINITY
+    stats: 'Stats'
+    object_: Union[Literal['model'], Unset] = 'model'
+    owned_by: Union[Literal['infinity'], Unset] = 'infinity'
     created: Union[Unset, int] = UNSET
-    backend: Union[Unset, str] = ""
+    backend: Union[Unset, str] = ''
     capabilities: Union[Unset, List[str]] = UNSET
     additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
+
     def to_dict(self) -> Dict[str, Any]:
+        from ..models.stats import Stats
         id = self.id
 
         stats = self.stats.to_dict()
 
-        object_: Union[Unset, str] = UNSET
-        if not isinstance(self.object_, Unset):
-            object_ = self.object_.value
+        object_ = self.object_
 
-        owned_by: Union[Unset, str] = UNSET
-        if not isinstance(self.owned_by, Unset):
-            owned_by = self.owned_by.value
+        owned_by = self.owned_by
 
         created = self.created
 
@@ -57,14 +66,15 @@ class ModelInfo:
         if not isinstance(self.capabilities, Unset):
             capabilities = self.capabilities
 
+
+
+
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "id": id,
-                "stats": stats,
-            }
-        )
+        field_dict.update({
+            "id": id,
+            "stats": stats,
+        })
         if object_ is not UNSET:
             field_dict["object"] = object_
         if owned_by is not UNSET:
@@ -78,34 +88,33 @@ class ModelInfo:
 
         return field_dict
 
+
+
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         from ..models.stats import Stats
-
         d = src_dict.copy()
         id = d.pop("id")
 
         stats = Stats.from_dict(d.pop("stats"))
 
-        _object_ = d.pop("object", UNSET)
-        object_: Union[Unset, ModelInfoObject]
-        if isinstance(_object_, Unset):
-            object_ = UNSET
-        else:
-            object_ = ModelInfoObject(_object_)
 
-        _owned_by = d.pop("owned_by", UNSET)
-        owned_by: Union[Unset, ModelInfoOwnedBy]
-        if isinstance(_owned_by, Unset):
-            owned_by = UNSET
-        else:
-            owned_by = ModelInfoOwnedBy(_owned_by)
+
+
+        object_ = cast(Union[Literal['model'], Unset] , d.pop("object", UNSET))
+        if object_ != 'model'and not isinstance(object_, Unset):
+            raise ValueError(f"object must match const 'model', got '{object_}'")
+
+        owned_by = cast(Union[Literal['infinity'], Unset] , d.pop("owned_by", UNSET))
+        if owned_by != 'infinity'and not isinstance(owned_by, Unset):
+            raise ValueError(f"owned_by must match const 'infinity', got '{owned_by}'")
 
         created = d.pop("created", UNSET)
 
         backend = d.pop("backend", UNSET)
 
         capabilities = cast(List[str], d.pop("capabilities", UNSET))
+
 
         model_info = cls(
             id=id,
@@ -116,6 +125,7 @@ class ModelInfo:
             backend=backend,
             capabilities=capabilities,
         )
+
 
         model_info.additional_properties = d
         return model_info

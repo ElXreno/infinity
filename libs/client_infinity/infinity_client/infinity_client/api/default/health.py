@@ -1,28 +1,41 @@
 from http import HTTPStatus
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import httpx
 
-from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...types import Response, UNSET
+from ... import errors
+
+from typing import cast
 from ...models.response_health import ResponseHealth
-from ...types import Response
+from typing import Dict
 
 
-def _get_kwargs() -> Dict[str, Any]:
+
+def _get_kwargs(
+    
+) -> Dict[str, Any]:
+    
+
+    
+
+    
+
     _kwargs: Dict[str, Any] = {
         "method": "get",
         "url": "/health",
     }
 
+
     return _kwargs
 
 
-def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[ResponseHealth]:
+def _parse_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Optional[ResponseHealth]:
     if response.status_code == HTTPStatus.OK:
         response_200 = ResponseHealth.from_dict(response.json())
+
+
 
         return response_200
     if client.raise_on_unexpected_status:
@@ -31,9 +44,7 @@ def _parse_response(
         return None
 
 
-def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[ResponseHealth]:
+def _build_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Response[ResponseHealth]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -45,8 +56,9 @@ def _build_response(
 def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
+
 ) -> Response[ResponseHealth]:
-    """Health
+    """  Health
 
      health check endpoint
 
@@ -59,9 +71,12 @@ def sync_detailed(
 
     Returns:
         Response[ResponseHealth]
-    """
+     """
 
-    kwargs = _get_kwargs()
+
+    kwargs = _get_kwargs(
+        
+    )
 
     response = client.get_httpx_client().request(
         **kwargs,
@@ -69,12 +84,12 @@ def sync_detailed(
 
     return _build_response(client=client, response=response)
 
-
 def sync(
     *,
     client: Union[AuthenticatedClient, Client],
+
 ) -> Optional[ResponseHealth]:
-    """Health
+    """  Health
 
      health check endpoint
 
@@ -87,18 +102,20 @@ def sync(
 
     Returns:
         ResponseHealth
-    """
+     """
+
 
     return sync_detailed(
         client=client,
-    ).parsed
 
+    ).parsed
 
 async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
+
 ) -> Response[ResponseHealth]:
-    """Health
+    """  Health
 
      health check endpoint
 
@@ -111,20 +128,25 @@ async def asyncio_detailed(
 
     Returns:
         Response[ResponseHealth]
-    """
+     """
 
-    kwargs = _get_kwargs()
 
-    response = await client.get_async_httpx_client().request(**kwargs)
+    kwargs = _get_kwargs(
+        
+    )
+
+    response = await client.get_async_httpx_client().request(
+        **kwargs
+    )
 
     return _build_response(client=client, response=response)
-
 
 async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
+
 ) -> Optional[ResponseHealth]:
-    """Health
+    """  Health
 
      health check endpoint
 
@@ -137,10 +159,10 @@ async def asyncio(
 
     Returns:
         ResponseHealth
-    """
+     """
 
-    return (
-        await asyncio_detailed(
-            client=client,
-        )
-    ).parsed
+
+    return (await asyncio_detailed(
+        client=client,
+
+    )).parsed

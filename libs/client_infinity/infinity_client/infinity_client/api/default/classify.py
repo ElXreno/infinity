@@ -1,21 +1,31 @@
 from http import HTTPStatus
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import httpx
 
-from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...types import Response, UNSET
+from ... import errors
+
+from typing import cast
 from ...models.classify_input import ClassifyInput
 from ...models.classify_result import ClassifyResult
+from typing import Dict
 from ...models.http_validation_error import HTTPValidationError
-from ...types import Response
+
 
 
 def _get_kwargs(
     *,
     body: ClassifyInput,
+
 ) -> Dict[str, Any]:
     headers: Dict[str, Any] = {}
+
+
+    
+
+    
 
     _kwargs: Dict[str, Any] = {
         "method": "post",
@@ -24,6 +34,7 @@ def _get_kwargs(
 
     _body = body.to_dict()
 
+
     _kwargs["json"] = _body
     headers["Content-Type"] = "application/json"
 
@@ -31,15 +42,17 @@ def _get_kwargs(
     return _kwargs
 
 
-def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[ClassifyResult, HTTPValidationError]]:
+def _parse_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Optional[Union[ClassifyResult, HTTPValidationError]]:
     if response.status_code == HTTPStatus.OK:
         response_200 = ClassifyResult.from_dict(response.json())
+
+
 
         return response_200
     if response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
         response_422 = HTTPValidationError.from_dict(response.json())
+
+
 
         return response_422
     if client.raise_on_unexpected_status:
@@ -48,9 +61,7 @@ def _parse_response(
         return None
 
 
-def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[ClassifyResult, HTTPValidationError]]:
+def _build_response(*, client: Union[AuthenticatedClient, Client], response: httpx.Response) -> Response[Union[ClassifyResult, HTTPValidationError]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -63,8 +74,9 @@ def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ClassifyInput,
+
 ) -> Response[Union[ClassifyResult, HTTPValidationError]]:
-    r"""Classify
+    r"""  Classify
 
      Score or Classify Sentiments
 
@@ -84,10 +96,12 @@ def sync_detailed(
 
     Returns:
         Response[Union[ClassifyResult, HTTPValidationError]]
-    """
+     """
+
 
     kwargs = _get_kwargs(
         body=body,
+
     )
 
     response = client.get_httpx_client().request(
@@ -96,13 +110,13 @@ def sync_detailed(
 
     return _build_response(client=client, response=response)
 
-
 def sync(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ClassifyInput,
+
 ) -> Optional[Union[ClassifyResult, HTTPValidationError]]:
-    r"""Classify
+    r"""  Classify
 
      Score or Classify Sentiments
 
@@ -122,20 +136,22 @@ def sync(
 
     Returns:
         Union[ClassifyResult, HTTPValidationError]
-    """
+     """
+
 
     return sync_detailed(
         client=client,
-        body=body,
-    ).parsed
+body=body,
 
+    ).parsed
 
 async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ClassifyInput,
+
 ) -> Response[Union[ClassifyResult, HTTPValidationError]]:
-    r"""Classify
+    r"""  Classify
 
      Score or Classify Sentiments
 
@@ -155,23 +171,27 @@ async def asyncio_detailed(
 
     Returns:
         Response[Union[ClassifyResult, HTTPValidationError]]
-    """
+     """
+
 
     kwargs = _get_kwargs(
         body=body,
+
     )
 
-    response = await client.get_async_httpx_client().request(**kwargs)
+    response = await client.get_async_httpx_client().request(
+        **kwargs
+    )
 
     return _build_response(client=client, response=response)
-
 
 async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
     body: ClassifyInput,
+
 ) -> Optional[Union[ClassifyResult, HTTPValidationError]]:
-    r"""Classify
+    r"""  Classify
 
      Score or Classify Sentiments
 
@@ -191,11 +211,11 @@ async def asyncio(
 
     Returns:
         Union[ClassifyResult, HTTPValidationError]
-    """
+     """
 
-    return (
-        await asyncio_detailed(
-            client=client,
-            body=body,
-        )
-    ).parsed
+
+    return (await asyncio_detailed(
+        client=client,
+body=body,
+
+    )).parsed

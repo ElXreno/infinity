@@ -1,55 +1,93 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, Type, TypeVar, Tuple, Optional, BinaryIO, TextIO, TYPE_CHECKING
+
+from typing import List
+
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+
+from ..types import UNSET, Unset
+
+from typing import cast
+from typing import cast, List
+from typing import Union
+from typing import Dict
+from typing import cast, Union
+from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+  from ..models.context import Context
+
+
+
+
 
 T = TypeVar("T", bound="ValidationError")
 
 
 @_attrs_define
 class ValidationError:
-    """
-    Attributes:
-        loc (List[Union[int, str]]):
-        msg (str):
-        type (str):
-    """
+    """ 
+        Attributes:
+            loc (List[Union[int, str]]):
+            msg (str):
+            type (str):
+            input_ (Union[Unset, Any]):
+            ctx (Union[Unset, Context]):
+     """
 
     loc: List[Union[int, str]]
     msg: str
     type: str
+    input_: Union[Unset, Any] = UNSET
+    ctx: Union[Unset, 'Context'] = UNSET
     additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
+
     def to_dict(self) -> Dict[str, Any]:
+        from ..models.context import Context
         loc = []
         for loc_item_data in self.loc:
             loc_item: Union[int, str]
             loc_item = loc_item_data
             loc.append(loc_item)
 
+
+
         msg = self.msg
 
         type = self.type
 
+        input_ = self.input_
+
+        ctx: Union[Unset, Dict[str, Any]] = UNSET
+        if not isinstance(self.ctx, Unset):
+            ctx = self.ctx.to_dict()
+
+
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "loc": loc,
-                "msg": msg,
-                "type": type,
-            }
-        )
+        field_dict.update({
+            "loc": loc,
+            "msg": msg,
+            "type": type,
+        })
+        if input_ is not UNSET:
+            field_dict["input"] = input_
+        if ctx is not UNSET:
+            field_dict["ctx"] = ctx
 
         return field_dict
 
+
+
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.context import Context
         d = src_dict.copy()
         loc = []
         _loc = d.pop("loc")
-        for loc_item_data in _loc:
-
+        for loc_item_data in (_loc):
             def _parse_loc_item(data: object) -> Union[int, str]:
                 return cast(Union[int, str], data)
 
@@ -57,15 +95,31 @@ class ValidationError:
 
             loc.append(loc_item)
 
+
         msg = d.pop("msg")
 
         type = d.pop("type")
+
+        input_ = d.pop("input", UNSET)
+
+        _ctx = d.pop("ctx", UNSET)
+        ctx: Union[Unset, Context]
+        if isinstance(_ctx,  Unset):
+            ctx = UNSET
+        else:
+            ctx = Context.from_dict(_ctx)
+
+
+
 
         validation_error = cls(
             loc=loc,
             msg=msg,
             type=type,
+            input_=input_,
+            ctx=ctx,
         )
+
 
         validation_error.additional_properties = d
         return validation_error
