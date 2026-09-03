@@ -1,0 +1,2 @@
+# CVE IDs listed here are skipped by the Trivy scan in .github/workflows/publish_ghcr.yaml.
+# Each entry needs a reason and a date so it can be revisited.
