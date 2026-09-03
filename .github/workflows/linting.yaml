@@ -41,7 +41,7 @@ jobs:
         python-version: ${{ fromJSON(inputs.python-versions) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Free Disk Space
         uses: "./.github/actions/disk_cleanup"
@@ -89,7 +89,7 @@ jobs:
           poetry install ${{ inputs.extra_poetry }}
 
       - name: Get .mypy_cache to speed up mypy
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MIN: "2"
         with:

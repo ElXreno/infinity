@@ -26,13 +26,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
       name: Setup python ${{ inputs.python-version }}
       id: setup-python
       with:
         python-version: ${{ inputs.python-version }}
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       id: cache-bin-poetry
       name: Cache Poetry binary - Python ${{ inputs.python-version }}
       env:
@@ -79,7 +79,7 @@ runs:
       run: pipx install "poetry==$POETRY_VERSION" --python '${{ steps.setup-python.outputs.python-path }}' --verbose
 
     - name: Restore pip and poetry cached dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       env:
         SEGMENT_DOWNLOAD_TIMEOUT_MIN: "4"
         WORKDIR: ${{ inputs.working-directory == '' && '.' || inputs.working-directory }}
