@@ -9,6 +9,7 @@ PYTHON_COMMAND=${PYTHON:-python3}
 # Initialize variables
 EXTRA_URL=""
 NO_ROOT=0
+KEEP_VENV=0
 WITHOUT=""
 WITH=""
 
@@ -20,6 +21,10 @@ key="$1"
 case $key in
     --no-root)
     NO_ROOT=1
+    shift
+    ;;
+    --keep-venv)
+    KEEP_VENV=1
     shift
     ;;
     --without)
@@ -38,7 +43,7 @@ case $key in
         shift
     else
         echo "Unknown argument: $1"
-        echo "Usage: $0 [--no-root] [--without <value>] [--with <value>] <extra_torch_url_py>"
+        echo "Usage: $0 [--no-root] [--keep-venv] [--without <value>] [--with <value>] <extra_torch_url_py>"
         exit 1
     fi
     ;;
@@ -47,7 +52,7 @@ done
 
 # Check if EXTRA_URL is set
 if [ -z "$EXTRA_URL" ]; then
-    echo "Usage: $0 [--no-root] [--without <value>] [--with <value>] <extra_torch_url_py>"
+    echo "Usage: $0 [--no-root] [--keep-venv] [--without <value>] [--with <value>] <extra_torch_url_py>"
     exit 1
 fi
 
@@ -65,24 +70,33 @@ fi
 # Export the dependencies to requirements.txt without hashes
 "${POETRY_EXPORT_CMD[@]}" > requirements.txt
 
-# Step 2: Delete the existing virtual environment
-if [ -d "./.venv" ]; then
+# Step 2: Delete the existing virtual environment (--keep-venv reuses it, e.g. restored from a CI cache)
+if [ -d "./.venv" ] && [ $KEEP_VENV -eq 0 ]; then
     rm -rf ./.venv
 fi
 
 # Step 3: Create a new virtual environment using the specified Python command
-$PYTHON_COMMAND -m venv .venv
+if [ ! -d "./.venv" ]; then
+    $PYTHON_COMMAND -m venv .venv
+fi
 
 # Activate the virtual environment
 source .venv/bin/activate
 
-# Step 4: Extract the version of torch from requirements.txt
-TORCH_VERSION=$(grep '^torch==' requirements.txt | awk -F'==' '{print $2}')
+# Step 4: Extract the locked versions of torch and torchvision from requirements.txt
+TORCH_VERSION=$(grep '^torch==' requirements.txt | awk -F'==' '{print $2}' | awk '{print $1}')
+TORCHVISION_VERSION=$(grep '^torchvision==' requirements.txt | awk -F'==' '{print $2}' | awk '{print $1}')
 
 # Check if torch version was found
 if [ -z "$TORCH_VERSION" ]; then
     echo "Torch version not found in requirements.txt"
     exit 1
+fi
+TORCH_SPEC="torch==${TORCH_VERSION}"
+if [ -n "$TORCHVISION_VERSION" ]; then
+    TORCH_SPEC="$TORCH_SPEC torchvision==${TORCHVISION_VERSION}"
+else
+    TORCH_SPEC="$TORCH_SPEC torchvision"
 fi
 
 # Remove lines containing 'torch', 'nvidia', 'cuda' and 'triton' from requirements.txt
@@ -97,7 +111,8 @@ sed -i '/triton/d' requirements.txt
 
 python -m pip install -r requirements.txt --no-cache-dir --extra-index-url "$EXTRA_URL"
 python -m pip list --format=freeze | grep nvidia | xargs python -m  pip uninstall -y triton torch torchvision
-python -m pip install torch torchvision --index-url "$EXTRA_URL" --no-cache-dir
+# shellcheck disable=SC2086
+python -m pip install $TORCH_SPEC --index-url "$EXTRA_URL" --no-cache-dir
 
 # Step 6: Optionally install the current package
 if [[ $NO_ROOT -eq 0 ]]; then
