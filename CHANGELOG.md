@@ -7,6 +7,12 @@ All notable changes to this fork are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `docs/benchmarks/cpu/`: load generator, parity checks and an int8 quantization script for the
+  CPU image, with the measured effect of `--pad-to-multiple-of`, OpenVINO bf16 and static int8,
+  and a note on why bf16 needs a graph with fused `LayerNormalization`.
+
 ### Changed
 
 - The `-cpu` image is built natively per platform (`ubuntu-24.04-arm` for arm64 instead of QEMU)
