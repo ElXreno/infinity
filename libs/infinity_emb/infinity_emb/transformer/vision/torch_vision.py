@@ -203,14 +203,14 @@ class TIMM(BaseTIMM):
                     )
             else:
                 if "input_ids" in features:
-                    text_embeds: "Tensor" = pooled_features(
+                    text_embeds = pooled_features(
                         self.model.get_text_features(  # type: ignore
                             input_ids=features.get("input_ids"),  # requires int32
                             attention_mask=features.get("attention_mask"),
                         )
                     )
                 if "pixel_values" in features:
-                    image_embeds: "Tensor" = pooled_features(
+                    image_embeds = pooled_features(
                         self.model.get_image_features(  # type: ignore
                             pixel_values=features.get("pixel_values").to(self.model.dtype),  # type: ignore
                             # requires float32 or float16 or bfloat16
