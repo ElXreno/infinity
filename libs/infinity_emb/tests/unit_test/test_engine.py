@@ -426,6 +426,10 @@ async def test_async_api_torch_matryoshka():
             await engine.rerank(query="dummy", docs=sentences)
 
 
+@pytest.mark.xfail(
+    raises=ImportError,
+    reason="jinaai/jina-clip-v2 remote code imports clip_loss, removed in transformers 5",
+)
 @pytest.mark.anyio
 async def test_torch_clip_embed_matryoshka():
     matryoshka_dim = 128

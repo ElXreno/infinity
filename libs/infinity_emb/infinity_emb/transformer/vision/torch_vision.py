@@ -14,6 +14,7 @@ from infinity_emb._optional_imports import (
 from infinity_emb.args import EngineArgs
 from infinity_emb.primitives import Device, Dtype
 from infinity_emb.transformer.abstract import BaseTIMM
+from infinity_emb.transformer.compat import pooled_features, text_max_length
 from infinity_emb.transformer.quantization.interface import (
     quant_embedding_decorator,
     quant_interface,
@@ -53,9 +54,9 @@ class TIMM(BaseTIMM):
         if device == Device.auto and torch.cuda.is_available():
             device = Device.cuda
         if device == "cuda" and engine_args.dtype in (Dtype.float16, Dtype.bfloat16):
-            extra_model_args["torch_dtype"] = engine_args.dtype.value
+            extra_model_args["dtype"] = engine_args.dtype.value
         elif device == "cuda" and engine_args.dtype in (Dtype.auto):
-            extra_model_args["torch_dtype"] = "float16"
+            extra_model_args["dtype"] = "float16"
 
         if self.is_colipali:
             CHECK_COLPALI_ENGINE.mark_required()
@@ -126,15 +127,9 @@ class TIMM(BaseTIMM):
                 self.model.vision_model = torch.compile(self.model.vision_model, dynamic=True)
                 self.model.text_model = torch.compile(self.model.text_model, dynamic=True)
 
-        self.max_length = None
-        if hasattr(self.model.config, "max_length"):
-            self.max_length = self.model.config.max_length
-        elif hasattr(self.model.config, "max_position_embeddings"):
-            self.max_length = self.model.config.max_position_embeddings
-        elif hasattr(self.model.config, "text_config") and hasattr(
-            self.model.config.text_config, "max_length"
-        ):
-            self.max_length = self.model.config.text_config.max_length
+        self.max_length = text_max_length(
+            self.model.config, getattr(self.processor, "tokenizer", None)
+        )
 
     def encode_pre(self, sentences_or_images: list[Union[str, "ImageClass"]]):
         # return input_tuples
@@ -208,14 +203,18 @@ class TIMM(BaseTIMM):
                     )
             else:
                 if "input_ids" in features:
-                    text_embeds: "Tensor" = self.model.get_text_features(  # type: ignore
-                        input_ids=features.get("input_ids"),  # requires int32
-                        attention_mask=features.get("attention_mask"),
+                    text_embeds: "Tensor" = pooled_features(
+                        self.model.get_text_features(  # type: ignore
+                            input_ids=features.get("input_ids"),  # requires int32
+                            attention_mask=features.get("attention_mask"),
+                        )
                     )
                 if "pixel_values" in features:
-                    image_embeds: "Tensor" = self.model.get_image_features(  # type: ignore
-                        pixel_values=features.get("pixel_values").to(self.model.dtype),  # type: ignore
-                        # requires float32 or float16 or bfloat16
+                    image_embeds: "Tensor" = pooled_features(
+                        self.model.get_image_features(  # type: ignore
+                            pixel_values=features.get("pixel_values").to(self.model.dtype),  # type: ignore
+                            # requires float32 or float16 or bfloat16
+                        )
                     )
         return text_embeds, image_embeds, type_is_img  # type: ignore
 

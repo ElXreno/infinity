@@ -240,7 +240,7 @@ if CHECK_TYPER.is_available:
         ),
         bettertransformer: list[bool] = typer.Option(
             **_construct("bettertransformer"),
-            help="Enables varlen flash-attention-2 via the `BetterTransformer` implementation. If available for this model.",
+            help="No-op kept for compatibility: BetterTransformer was removed from transformers 5 and optimum 2, torch SDPA is used instead.",
         ),
         # arguments for uvicorn / server
         preload_only: bool = typer.Option(

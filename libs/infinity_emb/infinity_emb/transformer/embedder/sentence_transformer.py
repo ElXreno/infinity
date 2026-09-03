@@ -24,7 +24,7 @@ from infinity_emb.transformer.quantization.interface import (
     quant_embedding_decorator,
     quant_interface,
 )
-from infinity_emb.transformer.st_compat import replace_underlying_model
+from infinity_emb.transformer.compat import replace_underlying_model
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -75,7 +75,7 @@ def pad_features_to_multiple_of(
     pad = (extra, 0) if tokenizer.padding_side == "left" else (0, extra)
     padded = {}
     for key, value in features.items():
-        if value.ndim == 2 and value.shape[1] == seq_len:
+        if getattr(value, "ndim", None) == 2 and value.shape[1] == seq_len:
             fill = tokenizer.pad_token_id if key == "input_ids" else 0
             padded[key] = torch.nn.functional.pad(value, pad, value=fill)
         else:
@@ -99,7 +99,7 @@ class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
         assert ls is not None
 
         if ls.loading_dtype is not None:
-            model_kwargs["torch_dtype"] = ls.loading_dtype
+            model_kwargs["dtype"] = ls.loading_dtype
 
         super().__init__(
             engine_args.model_name_or_path,
@@ -202,7 +202,7 @@ class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
         return embeddings_np
 
     def tokenize_lengths(self, sentences: list[str]) -> list[int]:
-        tks = self._infinity_tokenizer.batch_encode_plus(
+        tks = self._infinity_tokenizer(
             sentences,
             add_special_tokens=False,
             return_token_type_ids=False,

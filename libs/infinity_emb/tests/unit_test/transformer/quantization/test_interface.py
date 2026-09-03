@@ -37,9 +37,7 @@ def test_quantize_bert(device: Device, dtype: Dtype):
 
     model.to(device.resolve())
     model_unquantized.to(device.resolve())
-    tokens_encoded = tokenizer.batch_encode_plus(
-        ["This is an english text to be encoded."], return_tensors="pt"
-    )
+    tokens_encoded = tokenizer(["This is an english text to be encoded."], return_tensors="pt")
     tokens_encoded = {k: v.to(device.resolve()) for k, v in tokens_encoded.items()}
     with torch.no_grad():
         out_default = model_unquantized.forward(**tokens_encoded)["last_hidden_state"].mean(dim=1)

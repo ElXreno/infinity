@@ -14,8 +14,7 @@ keywords = ["vector", "embedding", "neural", "search", "sentence-transformers"]
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
 numpy = ">=2.0,<3"
-# transformers <4.58 (see below) caps huggingface_hub at <1.0
-huggingface_hub= {version = ">=0.34.0,<1.0"}
+huggingface_hub= {version = ">=1.5.0,<2"}
 # logging
 rich = {version = ">=13", optional=true}
 # webserver-only
@@ -30,16 +29,16 @@ posthog = {version = "*", optional=true}
 # backend
 # pin torch to a specific source, but default to pypi. use sed to overwrite.
 torch = {version = ">=2.2.1", source = "pypi", optional=true}
-sentence-transformers = {version = ">=5.1.0,<6", optional=true}
-# optimum-onnx (the `optimum.onnxruntime` package since optimum 2.0) pins transformers <4.58;
-# transformers 5 / sentence-transformers 6 need the ONNX path to drop optimum first.
-transformers = {version = ">=4.57.0,<4.58", optional=true, extras=["sentencepiece"]}
+sentence-transformers = {version = ">=6.0.0,<7", optional=true}
+transformers = {version = ">=5.16.0,<6", optional=true, extras=["sentencepiece"]}
 ctranslate2 = {version = ">=4.0.0", optional=true}
-optimum = {version = ">=2.1.0", optional=true, extras=["onnxruntime"]}
-# keep in step with the onnxruntime-openvino wheel installed on top in Dockerfile.cpu_auto
+# the onnx engine talks to onnxruntime directly: optimum-onnx pins transformers <4.58
+# keep onnxruntime in step with the onnxruntime-openvino wheel installed on top in Dockerfile.cpu_auto
 onnxruntime = {version = "~1.24.0", optional=true}
+onnx = {version = ">=1.17.0", optional=true}
 einops = {version = "*", optional=true}
-# vision
+# vision / audio: fetching inputs by URL
+aiohttp = {version = ">=3.9", optional=true}
 pillow = {version = "*", optional=true}
 timm = {version = "*", optional=true}
 # colpali-engine is not locked: every release caps torch (<2.9 for the transformers 4.x line),
@@ -100,15 +99,16 @@ mypy-protobuf = "^3.0.0"
 
 [tool.poetry.extras]
 ct2=["ctranslate2","sentence-transformers","torch","transformers"]
-optimum=["optimum","onnxruntime"]
+optimum=["onnx","onnxruntime"]
 torch=["sentence-transformers","torch"]
 einops=["einops"]
 logging=["rich"]
 cache=["diskcache"]
-vision=["pillow","timm","torchvision"]
+vision=["aiohttp","pillow","timm","torchvision"]
 # openvino=["onnxruntime-openvino","openvino","openvino-tokenizers"]
-audio=["soundfile"]
+audio=["aiohttp","soundfile"]
 server=[
+    "aiohttp",
     "fastapi",
     "orjson",
     "prometheus-fastapi-instrumentator",
@@ -119,13 +119,14 @@ server=[
     "uvicorn",
 ]
 all=[
+    "aiohttp",
     "ctranslate2",
     "diskcache",
     "einops",
     "fastapi",
+    "onnx",
     "onnxruntime",
-    "optimum",
-    "orjson", 
+    "orjson",
     "pillow",
     "prometheus-fastapi-instrumentator", 
     "posthog",

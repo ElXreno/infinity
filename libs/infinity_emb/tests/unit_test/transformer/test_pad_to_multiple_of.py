@@ -90,11 +90,13 @@ def test_pad_features_to_multiple_of_helper():
     features = {
         "input_ids": torch.tensor([[1, 2, 3], [4, 5, 7]]),
         "attention_mask": torch.tensor([[1, 1, 1], [1, 1, 0]]),
+        "input_type": "text",
     }
 
     right = pad_features_to_multiple_of(features, 4, _Tokenizer("right"))
     assert right["input_ids"].tolist() == [[1, 2, 3, 7], [4, 5, 7, 7]]
     assert right["attention_mask"].tolist() == [[1, 1, 1, 0], [1, 1, 0, 0]]
+    assert right["input_type"] == "text"
 
     left = pad_features_to_multiple_of(features, 4, _Tokenizer("left"))
     assert left["input_ids"].tolist() == [[7, 1, 2, 3], [7, 4, 5, 7]]

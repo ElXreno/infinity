@@ -46,7 +46,7 @@ class EngineArgs:
         device_id, DeviceID or str: device index to use for inference.
             Defaults to [], no preferred placement.
         compile, bool: compile model for better performance. Defaults to False.
-        bettertransformer, bool: use bettertransformer. Defaults to True.
+        bettertransformer, bool: no-op kept for compatibility. Defaults to False.
         dtype, Dtype or str: data type to use for inference. Defaults to Dtype.auto.
         pooling_method, PoolingMethod or str: pooling method to use. Defaults to PoolingMethod.auto.
         lengths_via_tokenize, bool: schedule by token usage. Defaults to False.

@@ -9,6 +9,7 @@ from infinity_emb._optional_imports import CHECK_TORCH, CHECK_TRANSFORMERS
 from infinity_emb.args import EngineArgs
 from infinity_emb.primitives import AudioInputType
 from infinity_emb.transformer.abstract import BaseAudioEmbedModel
+from infinity_emb.transformer.compat import pooled_features, text_max_length
 from infinity_emb.transformer.quantization.interface import quant_embedding_decorator
 
 if TYPE_CHECKING:
@@ -51,15 +52,9 @@ class TorchAudioModel(BaseAudioEmbedModel):
         assert hasattr(
             self.model, "get_audio_features"
         ), f"AutoModel of {engine_args.model_name_or_path} does not have get_audio_features method"
-        self.max_length = None
-        if hasattr(self.model.config, "max_length"):
-            self.max_length = self.model.config.max_length
-        elif hasattr(self.model.config, "max_position_embeddings"):
-            self.max_length = self.model.config.max_position_embeddings
-        elif hasattr(self.model.config, "text_config") and hasattr(
-            self.model.config.text_config, "max_length"
-        ):
-            self.max_length = self.model.config.text_config.max_length
+        self.max_length = text_max_length(
+            self.model.config, getattr(self.processor, "tokenizer", None)
+        )
         self._sampling_rate = self.processor.feature_extractor.sampling_rate
 
     @property
@@ -80,7 +75,7 @@ class TorchAudioModel(BaseAudioEmbedModel):
                 type_is_audio.append(True)
 
         preprocessed = self.processor(
-            audios=audio_list if audio_list else None,
+            audio=audio_list if audio_list else None,
             text=text_list if text_list else None,
             return_tensors="pt",
             padding=True,
@@ -107,16 +102,20 @@ class TorchAudioModel(BaseAudioEmbedModel):
         with torch.no_grad():
             # TODO: torch.cuda.stream()
             if "input_ids" in features:
-                text_embeds = self.model.get_text_features(
-                    input_ids=features.get("input_ids")[:, : self.max_length],  # type: ignore
-                    attention_mask=features.get("attention_mask")[:, : self.max_length],  # type: ignore
+                text_embeds = pooled_features(
+                    self.model.get_text_features(
+                        input_ids=features.get("input_ids")[:, : self.max_length],  # type: ignore
+                        attention_mask=features.get("attention_mask")[:, : self.max_length],  # type: ignore
+                    )
                 )
             else:
                 text_embeds = None  # type: ignore
 
             if "input_features" in features:
-                audio_embeds = self.model.get_audio_features(
-                    input_features=features.get("input_features"),
+                audio_embeds = pooled_features(
+                    self.model.get_audio_features(
+                        input_features=features.get("input_features"),
+                    )
                 )
             else:
                 audio_embeds = None

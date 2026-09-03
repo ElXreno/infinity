@@ -9,33 +9,37 @@ $ infinity_emb v2 --help
                                                                                                                         
  Usage: infinity_emb v2 [OPTIONS]                                                                                       
                                                                                                                         
- Infinity API ♾️  cli v2. MIT License. Copyright (c) 2023-now Michael Feil                                               
+ Infinity API ♾️  cli v2. MIT License. Copyright (c) 2023-now Michael Feil                                              
+                                                                                                                        
  Multiple Model CLI Playbook:                                                                                           
+                                                                                                                        
  - 1. cli options can be overloaded i.e. `v2 --model-id model/id1 --model-id model/id2 --batch-size 8 --batch-size 4`   
+                                                                                                                        
  - 2. or adapt the defaults by setting ENV Variables separated by `;`: INFINITY_MODEL_ID="model/id1;model/id2;" &&      
  INFINITY_BATCH_SIZE="8;4;"                                                                                             
+                                                                                                                        
  - 3. single items are broadcasted to `--model-id` length, making `v2 --model-id model/id1 --model-id/id2 --batch-size  
  8` both models have batch-size 8.                                                                                      
                                                                                                                         
 ╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --model-id                                                   TEXT                        Huggingface model repo id.  │
+│ --model-id                                                   <str>                       Huggingface model repo id.  │
 │                                                                                          Subset of possible models:  │
 │                                                                                          https://huggingface.co/mod… │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_MODEL_ID`]        │
 │                                                                                          [default:                   │
 │                                                                                          michaelfeil/bge-small-en-v… │
-│ --served-model-name                                          TEXT                        the nickname for the API,   │
+│ --served-model-name                                          <str>                       the nickname for the API,   │
 │                                                                                          under which the model_id    │
 │                                                                                          can be selected             │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_SERVED_MODEL_NAM… │
-│ --batch-size                                                 INTEGER                     maximum batch size for      │
+│ --batch-size                                                 <int>                       maximum batch size for      │
 │                                                                                          inference                   │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_BATCH_SIZE`]      │
 │                                                                                          [default: 32]               │
-│ --revision                                                   TEXT                        huggingface  model repo     │
+│ --revision                                                   <str>                       huggingface  model repo     │
 │                                                                                          revision.                   │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_REVISION`]        │
@@ -47,8 +51,8 @@ $ infinity_emb v2 --help
 │                                                                                          `INFINITY_TRUST_REMOTE_COD… │
 │                                                                                          [default:                   │
 │                                                                                          trust-remote-code]          │
-│ --engine                                                     [torch|ctranslate2|optimum  Which backend to use.       │
-│                                                              |neuron|debugengine]        `torch` uses Pytorch        │
+│ --engine                                                     <torch|ctranslate2|optimum  Which backend to use.       │
+│                                                              |neuron|debugengine>        `torch` uses Pytorch        │
 │                                                                                          GPU/CPU, optimum uses ONNX  │
 │                                                                                          on GPU/CPU/NVIDIA-TensorRT, │
 │                                                                                          `CTranslate2` uses          │
@@ -70,12 +74,12 @@ $ infinity_emb v2 --help
 │                                                                                          `INFINITY_VECTOR_DISK_CACH… │
 │                                                                                          [default:                   │
 │                                                                                          vector-disk-cache]          │
-│ --device                                                     [cpu|cuda|mps|tensorrt|xla  device to use for computing │
-│                                                              |auto]                      the model forward pass.     │
+│ --device                                                     <cpu|cuda|mps|tensorrt|xla  device to use for computing │
+│                                                              |auto>                      the model forward pass.     │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_DEVICE`]          │
 │                                                                                          [default: auto]             │
-│ --device-id                                                  TEXT                        device id defines the model │
+│ --device-id                                                  <str>                       device id defines the model │
 │                                                                                          placement. e.g. `0,1` will  │
 │                                                                                          place the model on          │
 │                                                                                          MPS/CUDA/GPU 0 and 1 each   │
@@ -89,18 +93,18 @@ $ infinity_emb v2 --help
 │                                                                                          `INFINITY_LENGTHS_VIA_TOKE… │
 │                                                                                          [default:                   │
 │                                                                                          lengths-via-tokenize]       │
-│ --dtype                                                      [float32|float16|bfloat16|  dtype for the model         │
-│                                                              int8|fp8|auto]              weights.                    │
+│ --dtype                                                      <float32|float16|bfloat16|  dtype for the model         │
+│                                                              int8|fp8|auto>              weights.                    │
 │                                                                                          [env var: `INFINITY_DTYPE`] │
 │                                                                                          [default: auto]             │
-│ --embedding-dtype                                            [float32|int8|uint8|binary  dtype post-forward pass. If │
-│                                                              |ubinary]                   != `float32`, using         │
+│ --embedding-dtype                                            <float32|int8|uint8|binary  dtype post-forward pass. If │
+│                                                              |ubinary>                   != `float32`, using         │
 │                                                                                          Post-Forward Static         │
 │                                                                                          quantization.               │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_EMBEDDING_DTYPE`] │
 │                                                                                          [default: float32]          │
-│ --pooling-method                                             [mean|cls|auto]             overwrite the pooling       │
+│ --pooling-method                                             <mean|cls|auto>             overwrite the pooling       │
 │                                                                                          method if inferred          │
 │                                                                                          incorrectly.                │
 │                                                                                          [env var:                   │
@@ -112,11 +116,12 @@ $ infinity_emb v2 --help
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_COMPILE`]         │
 │                                                                                          [default: compile]          │
-│ --bettertransformer            --no-bettertransformer                                    Enables varlen              │
-│                                                                                          flash-attention-2 via the   │
-│                                                                                          `BetterTransformer`         │
-│                                                                                          implementation. If          │
-│                                                                                          available for this model.   │
+│ --bettertransformer            --no-bettertransformer                                    No-op kept for              │
+│                                                                                          compatibility:              │
+│                                                                                          BetterTransformer was       │
+│                                                                                          removed from transformers 5 │
+│                                                                                          and optimum 2, torch SDPA   │
+│                                                                                          is used instead.            │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_BETTERTRANSFORME… │
 │                                                                                          [default:                   │
@@ -129,27 +134,27 @@ $ infinity_emb v2 --help
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_PRELOAD_ONLY`]    │
 │                                                                                          [default: no-preload-only]  │
-│ --host                                                       TEXT                        host for the FastAPI        │
+│ --host                                                       <str>                       host for the FastAPI        │
 │                                                                                          uvicorn server              │
 │                                                                                          [env var: `INFINITY_HOST`]  │
 │                                                                                          [default: 0.0.0.0]          │
-│ --port                                                       INTEGER                     port for the FastAPI        │
+│ --port                                                       <int>                       port for the FastAPI        │
 │                                                                                          uvicorn server              │
 │                                                                                          [env var: `INFINITY_PORT`]  │
 │                                                                                          [default: 7997]             │
-│ --url-prefix                                                 TEXT                        prefix for all routes of    │
+│ --url-prefix                                                 <str>                       prefix for all routes of    │
 │                                                                                          the FastAPI uvicorn server. │
 │                                                                                          Useful if you run behind a  │
 │                                                                                          proxy / cascaded API.       │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_URL_PREFIX`]      │
-│ --redirect-slash                                             TEXT                        where to redirect `/`       │
+│ --redirect-slash                                             <str>                       where to redirect `/`       │
 │                                                                                          requests to.                │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_REDIRECT_SLASH`]  │
 │                                                                                          [default: /docs]            │
-│ --log-level                                                  [critical|error|warning|in  console log level.          │
-│                                                              fo|debug|trace]             [env var:                   │
+│ --log-level                                                  <critical|error|warning|in  console log level.          │
+│                                                              fo|debug|trace>             [env var:                   │
 │                                                                                          `INFINITY_LOG_LEVEL`]       │
 │                                                                                          [default: info]             │
 │ --permissive-cors              --no-permissive-cors                                      whether to allow permissive │
@@ -158,11 +163,11 @@ $ infinity_emb v2 --help
 │                                                                                          `INFINITY_PERMISSIVE_CORS`] │
 │                                                                                          [default:                   │
 │                                                                                          no-permissive-cors]         │
-│ --api-key                                                    TEXT                        api_key used for            │
+│ --api-key                                                    <str>                       api_key used for            │
 │                                                                                          authentication headers.     │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_API_KEY`]         │
-│ --proxy-root-path                                            TEXT                        Proxy prefix for the        │
+│ --proxy-root-path                                            <str>                       Proxy prefix for the        │
 │                                                                                          application. See:           │
 │                                                                                          https://fastapi.tiangolo.c… │
 │                                                                                          [env var:                   │
@@ -179,7 +184,7 @@ $ infinity_emb v2 --help
 │                                                                                          `INFINITY_ONNX_DO_NOT_PREF… │
 │                                                                                          [default:                   │
 │                                                                                          onnx-do-not-prefer-quantiz… │
-│ --pad-to-multiple-of                                         INTEGER                     Pad every batch to a        │
+│ --pad-to-multiple-of                                         <int>                       Pad every batch to a        │
 │                                                                                          sequence length that is a   │
 │                                                                                          multiple of this value, 0   │
 │                                                                                          disables. Bounds the number │
@@ -195,7 +200,7 @@ $ infinity_emb v2 --help
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_PAD_TO_MULTIPLE_… │
 │                                                                                          [default: 0]                │
-│ --onnx-provider-options                                      TEXT                        JSON object merged into the │
+│ --onnx-provider-options                                      <str>                       JSON object merged into the │
 │                                                                                          provider_options of the     │
 │                                                                                          onnxruntime execution       │
 │                                                                                          provider, e.g.              │
@@ -206,7 +211,7 @@ $ infinity_emb v2 --help
 │                                                                                          string passes nothing.      │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_ONNX_PROVIDER_OP… │
-│ --max-query-tokens                                           INTEGER                     Rerank ceiling:             │
+│ --max-query-tokens                                           <int>                       Rerank ceiling:             │
 │                                                                                          head-truncate the query to  │
 │                                                                                          at most N tokens before     │
 │                                                                                          scoring. A client may       │
@@ -214,8 +219,7 @@ $ infinity_emb v2 --help
 │                                                                                          disables the limit.         │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_MAX_QUERY_TOKENS… │
-│                                                                                          [default: None]             │
-│ --max-tokens-per-doc                                         INTEGER                     Rerank ceiling:             │
+│ --max-tokens-per-doc                                         <int>                       Rerank ceiling:             │
 │                                                                                          head-truncate each document │
 │                                                                                          to at most N tokens before  │
 │                                                                                          scoring. A client may       │
@@ -223,15 +227,13 @@ $ infinity_emb v2 --help
 │                                                                                          disables the limit.         │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_MAX_TOKENS_PER_D… │
-│                                                                                          [default: None]             │
-│ --max-pair-tokens                                            INTEGER                     Rerank ceiling on the       │
+│ --max-pair-tokens                                            <int>                       Rerank ceiling on the       │
 │                                                                                          joined (query, document)    │
 │                                                                                          pair, in tokens. A client   │
 │                                                                                          may request fewer. Unset    │
 │                                                                                          disables the limit.         │
 │                                                                                          [env var:                   │
 │                                                                                          `INFINITY_MAX_PAIR_TOKENS`] │
-│                                                                                          [default: None]             │
 │ --help                                                                                   Show this message and exit. │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 

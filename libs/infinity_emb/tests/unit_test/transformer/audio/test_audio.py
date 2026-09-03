@@ -31,7 +31,7 @@ def test_clap_like_model(audio_sample):
 
     inputs_clap = processor(
         text=["a sound of a cat"],
-        audios=[data],
+        audio=[data],
         return_tensors="pt",
         padding=True,
         sampling_rate=48000,

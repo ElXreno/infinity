@@ -16,7 +16,7 @@ from infinity_emb.transformer.quantization.interface import (
     quant_interface,
 )
 from infinity_emb.transformer.padding import padding_bucket
-from infinity_emb.transformer.st_compat import replace_underlying_model
+from infinity_emb.transformer.compat import replace_underlying_model
 
 if CHECK_TORCH.is_available and CHECK_SENTENCE_TRANSFORMERS.is_available:
     import torch
@@ -57,7 +57,7 @@ class CrossEncoderPatched(CrossEncoder, BaseCrossEncoder):
         assert ls is not None
 
         if ls.loading_dtype is not None:  # type: ignore
-            model_kwargs["torch_dtype"] = ls.loading_dtype
+            model_kwargs["dtype"] = ls.loading_dtype
 
         super().__init__(
             engine_args.model_name_or_path,
@@ -160,7 +160,7 @@ class CrossEncoderPatched(CrossEncoder, BaseCrossEncoder):
         return out_features.flatten().to(torch.float32).numpy()
 
     def tokenize_lengths(self, sentences: list[str]) -> list[int]:
-        tks = self._infinity_tokenizer.batch_encode_plus(
+        tks = self._infinity_tokenizer(
             sentences,
             add_special_tokens=False,
             return_token_type_ids=False,

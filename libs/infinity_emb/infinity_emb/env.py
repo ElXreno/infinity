@@ -177,7 +177,7 @@ class __Infinity_EnvManager:
     @cached_property
     def bettertransformer(self):
         return self._to_bool_multiple(
-            self._optional_infinity_var_multiple("bettertransformer", default=["true"])
+            self._optional_infinity_var_multiple("bettertransformer", default=["false"])
         )
 
     @cached_property

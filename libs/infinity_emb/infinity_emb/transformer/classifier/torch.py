@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2023-now michaelfeil
 
+from typing import Any
+
 from infinity_emb._optional_imports import CHECK_TRANSFORMERS, CHECK_TORCH
 from infinity_emb.args import EngineArgs
 from infinity_emb.log_handler import logger
@@ -52,7 +54,7 @@ class SentenceClassifier(BaseClassifer):
         assert ls is not None
 
         if ls.loading_dtype is not None:  # type: ignore
-            model_kwargs["torch_dtype"] = ls.loading_dtype
+            model_kwargs["dtype"] = ls.loading_dtype
 
         self._pipe = pipeline(
             task="text-classification",
@@ -103,13 +105,13 @@ class SentenceClassifier(BaseClassifer):
             function_to_apply="none",
         )
 
-    def encode_post(self, classes) -> dict[str, float]:
+    def encode_post(self, classes) -> list[Any]:
         """runs post encoding such as normalization"""
         return classes
 
     def tokenize_lengths(self, sentences: list[str]) -> list[int]:
         """gets the lengths of each sentences according to tokenize/len etc."""
-        tks = self._infinity_tokenizer.batch_encode_plus(
+        tks = self._infinity_tokenizer(
             sentences,
             add_special_tokens=False,
             return_token_type_ids=False,
