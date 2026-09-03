@@ -7,6 +7,12 @@ All notable changes to this fork are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The `optimum` engine failed with `KeyError: 'last_hidden_state'` on ONNX exports of
+  sentence-transformers models (e.g. `BAAI/bge-m3`), whose hidden-state output is named
+  `token_embeddings`. Both names are accepted; any other graph uses its first output, as optimum did.
+
 ## [0.1.0] - 2026-09-03
 
 ### Added

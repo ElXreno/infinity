@@ -173,6 +173,12 @@ def test_onnx_outputs_attribute_access():
         outputs.last_hidden_state
 
 
+def test_onnx_outputs_token_embeddings_naming():
+    assert OnnxOutputs(last_hidden_state="hf", pooler_output="p").token_embeddings() == "hf"
+    assert OnnxOutputs(token_embeddings="st", sentence_embedding="s").token_embeddings() == "st"
+    assert OnnxOutputs(hidden="first", other="second").token_embeddings() == "first"
+
+
 def test_symlink_free_model_dir_hardlinks_the_snapshot(monkeypatch, tmp_path):
     blobs = tmp_path / "blobs"
     snapshot = tmp_path / "snapshots" / "abc123"

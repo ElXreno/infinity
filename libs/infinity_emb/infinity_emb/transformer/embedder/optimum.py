@@ -78,7 +78,7 @@ class OptimumEmbedder(BaseEmbedder):
     def encode_core(self, onnx_input: dict[str, np.ndarray]) -> dict:
         outputs = self.model(**onnx_input)
         return {
-            "token_embeddings": outputs["last_hidden_state"],
+            "token_embeddings": outputs.token_embeddings(),
             "attention_mask": onnx_input["attention_mask"],
         }
 

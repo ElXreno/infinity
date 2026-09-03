@@ -111,6 +111,14 @@ class OnnxOutputs(dict):
         except KeyError as e:
             raise AttributeError(name) from e
 
+    def token_embeddings(self) -> np.ndarray:
+        """transformers exports name the hidden states `last_hidden_state`, sentence-transformers
+        exports `token_embeddings`; anything else falls back to the first output, as optimum did."""
+        for name in ("last_hidden_state", "token_embeddings"):
+            if name in self:
+                return self[name]
+        return next(iter(self.values()))
+
 
 class OnnxModel:
     """One onnxruntime session plus the transformers config of the model, callable with the
