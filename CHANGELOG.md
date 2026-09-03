@@ -7,6 +7,14 @@ All notable changes to this fork are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The `-cpu` image is built natively per platform (`ubuntu-24.04-arm` for arm64 instead of QEMU)
+  with the layer cache kept in ghcr (`buildcache-<platform>` tags); the test jobs install CPU
+  torch wheels and share one virtualenv cache.
+- `requirements_install_from_poetry.sh` installs the torch and torchvision versions from the lock
+  file instead of the newest CPU wheels, and `--keep-venv` reuses an existing `.venv`.
+
 ## [0.1.1] - 2026-09-03
 
 ### Fixed

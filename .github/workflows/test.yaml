@@ -61,12 +61,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
           poetry-version: ${{ env.POETRY_VERSION }}
           working-directory: ${{ inputs.working-directory }}
-          cache-key: ${{ inputs.working-directory }}-test-${{ matrix.coverage_tests }}
+          cache-key: ${{ inputs.working-directory }}-test
 
       - name: Install dependencies from local
         # only if source is local
         shell: bash
-        run: poetry install ${{ inputs.extra_poetry }}
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" && -f requirements_install_from_poetry.sh ]]; then
+            # CPU wheels: torch from PyPI drags the CUDA toolkit in, 6 GB the tests never load
+            EXTRAS=all ./requirements_install_from_poetry.sh --keep-venv --with test https://download.pytorch.org/whl/cpu
+          else
+            poetry install ${{ inputs.extra_poetry }}
+          fi
 
       - name: Cache HuggingFace models
         id: cache-models
@@ -131,12 +137,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
           poetry-version: ${{ env.POETRY_VERSION }}
           working-directory: ${{ inputs.working-directory }}
-          cache-key: ${{ inputs.working-directory }}-test-${{ matrix.coverage_tests }}
+          cache-key: ${{ inputs.working-directory }}-test
 
       - name: Install dependencies from local
         # only if source is local
         shell: bash
-        run: poetry install ${{ inputs.extra_poetry }}
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" && -f requirements_install_from_poetry.sh ]]; then
+            # CPU wheels: torch from PyPI drags the CUDA toolkit in, 6 GB the tests never load
+            EXTRAS=all ./requirements_install_from_poetry.sh --keep-venv --with test https://download.pytorch.org/whl/cpu
+          else
+            poetry install ${{ inputs.extra_poetry }}
+          fi
 
       - name: Cached HuggingFace models
         id: cache-models
