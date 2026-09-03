@@ -30,8 +30,8 @@ for i in {1..10}; do
 done
 
 # Run the generator from its own environment: openapi-python-client 0.21 pins typer<0.13,
-# which would downgrade the typer infinity_emb runs on.
-pipx run --spec openapi-python-client==0.21.1 \
+# which would downgrade the typer infinity_emb runs on, and that typer needs click<8.2.
+pipx run --pip-args "click<8.2" --spec openapi-python-client==0.21.1 \
 	 openapi-python-client generate  \
 	  --url http://0.0.0.0:7993/openapi.json \
 	  --config client_config.yaml \
