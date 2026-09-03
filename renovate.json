@@ -8,18 +8,8 @@
     "enabled": true,
     "schedule": ["before 6am on monday"]
   },
+  "osvVulnerabilityAlerts": true,
   "packageRules": [
-    {
-      "description": "optimum-onnx (optimum.onnxruntime) pins transformers <4.58 and optimum ~=2.1",
-      "matchManagers": ["poetry"],
-      "matchPackageNames": ["transformers"],
-      "allowedVersions": "<4.58"
-    },
-    {
-      "matchManagers": ["poetry"],
-      "matchPackageNames": ["optimum"],
-      "allowedVersions": "<2.2"
-    },
     {
       "matchManagers": ["poetry"],
       "matchUpdateTypes": ["minor", "patch"],
