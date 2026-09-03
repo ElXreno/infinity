@@ -13,6 +13,16 @@ All notable changes to this fork are documented here. The format follows
   CPU image, with the measured effect of `--pad-to-multiple-of`, OpenVINO bf16 and static int8,
   and a note on why bf16 needs a graph with fused `LayerNormalization`.
 
+### Fixed
+
+- `--dtype int8` on CPU (`torch.quantization.quantize_dynamic`) probes the int8 kernels in a
+  separate interpreter first: on CPUs where they raise an illegal-instruction fault (seen on
+  GitHub's Windows runners) the model now stays fp32 with a warning instead of the process dying
+  without a Python exception.
+- The cache path of offline-optimized ONNX graphs is derived from the model path without its
+  root or drive. For a local model directory on Windows the optimized graph was written next to
+  the model instead of into the cache.
+
 ### Changed
 
 - The `-cpu` image is built natively per platform (`ubuntu-24.04-arm` for arm64 instead of QEMU)
