@@ -102,15 +102,25 @@ def test_provider_options_override_tensorrt_defaults(recording_session, model_di
     assert call["model_path"].name == "model.onnx"
 
 
-def _optimized_path(tmp_path, model_dir):
-    return (
-        tmp_path
-        / "hub"
-        / "infinity_onnx"
-        / PROVIDER
-        / model_dir.as_posix().lstrip("/")
-        / "model_optimized.onnx"
+def _optimized_path(model_dir):
+    return utils_optimum.optimized_model_path(
+        model_dir.as_posix(), PROVIDER, model_dir / "onnx" / "model.onnx"
     )
+
+
+def test_optimized_model_path_nests_local_dirs_under_the_cache(monkeypatch, tmp_path):
+    monkeypatch.setattr(utils_optimum, "HUGGINGFACE_HUB_CACHE", (tmp_path / "hub").as_posix())
+    cache = tmp_path / "hub" / "infinity_onnx" / PROVIDER
+
+    hub = utils_optimum.optimized_model_path(MODEL, PROVIDER, Path("onnx/model.onnx"))
+    local = utils_optimum.optimized_model_path(
+        (tmp_path / "model").as_posix(), PROVIDER, Path("model.onnx")
+    )
+
+    assert hub == cache / MODEL / "model_optimized.onnx"
+    assert local.name == "model_optimized.onnx"
+    assert cache in local.parents
+    assert local.parent != tmp_path / "model"
 
 
 def test_optimizes_once_and_reuses_the_cached_graph(recording_session, model_dir, monkeypatch):
@@ -139,9 +149,9 @@ def test_broken_cached_optimized_model_falls_back(
     recording_session, model_dir, monkeypatch, tmp_path
 ):
     monkeypatch.setattr(utils_optimum, "HUGGINGFACE_HUB_CACHE", (tmp_path / "hub").as_posix())
-    optimized = tmp_path / "hub" / "infinity_onnx" / PROVIDER / model_dir.as_posix().lstrip("/")
-    optimized.mkdir(parents=True)
-    (optimized / "model_optimized.onnx").write_bytes(b"broken")
+    optimized = _optimized_path(model_dir)
+    optimized.parent.mkdir(parents=True)
+    optimized.write_bytes(b"broken")
     recording_session.fail_on = "_optimized.onnx"
 
     model = _load(model_dir, optimize_model=True)

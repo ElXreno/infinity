@@ -274,13 +274,7 @@ def load_onnx_model(
     config = AutoConfig.from_pretrained(model_dir.as_posix(), trust_remote_code=trust_remote_code)
 
     if optimize_model:
-        optimized = (
-            Path(HUGGINGFACE_HUB_CACHE)
-            / "infinity_onnx"
-            / execution_provider
-            / repo_id.lstrip("/")
-            / model_path.name.replace(".onnx", OPTIMIZED_SUFFIX)
-        )
+        optimized = optimized_model_path(repo_id, execution_provider, model_path)
         try:
             if optimized.exists():
                 logger.info(f"Optimized model found at {optimized}, skipping optimization")
@@ -295,6 +289,24 @@ def load_onnx_model(
             )
 
     return OnnxModel(model_path, config, execution_provider, provider_options)
+
+
+def optimized_model_path(repo_id: str, execution_provider: str, model_path: Path) -> Path:
+    """Where the offline-optimized graph of `model_path` is cached.
+
+    A local model directory is keyed by its path without the root or drive: joining an
+    absolute path onto the cache dir would replace the cache dir instead of nesting.
+    """
+    key = Path(repo_id)
+    if key.is_absolute():
+        key = key.relative_to(key.anchor)
+    return (
+        Path(HUGGINGFACE_HUB_CACHE)
+        / "infinity_onnx"
+        / execution_provider
+        / key
+        / model_path.name.replace(".onnx", OPTIMIZED_SUFFIX)
+    )
 
 
 def _list_all_repo_files(
