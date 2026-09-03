@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2023-now michaelfeil
 
+import subprocess
+import sys
 from functools import cache, wraps
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Union
@@ -25,6 +27,42 @@ if CHECK_SENTENCE_TRANSFORMERS.is_available:
     from sentence_transformers.quantization import quantize_embeddings  # type: ignore
 
 
+_DYNAMIC_INT8_PROBE = (
+    "import torch; "
+    "m = torch.nn.Linear(16, 16); "
+    "q = torch.quantization.quantize_dynamic(m, {torch.nn.Linear}, dtype=torch.qint8); "
+    "q(torch.randn(2, 16))"
+)
+
+
+@cache
+def dynamic_int8_runs_here() -> bool:
+    """Whether torch's int8 dynamic quantization can execute on this CPU.
+
+    On some CPUs the int8 kernels behind `quantize_dynamic` raise an illegal-instruction
+    fault (STATUS_ILLEGAL_INSTRUCTION on Windows runners with fbgemm). That kills the
+    process without a Python exception, so the probe runs in a throwaway interpreter.
+    """
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", _DYNAMIC_INT8_PROBE],
+            capture_output=True,
+            timeout=600,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as ex:
+        logger.warning(f"could not probe int8 dynamic quantization: {ex}")
+        return False
+    if result.returncode != 0:
+        tail = result.stderr.decode(errors="replace").strip().splitlines()[-1:] or [""]
+        logger.warning(
+            "int8 dynamic quantization crashes on this CPU "
+            f"(probe exit code {result.returncode}: {tail[0]}), keeping fp32 weights"
+        )
+        return False
+    return True
+
+
 def quant_interface(model: Any, dtype: Union[Dtype] = Dtype.int8, device: Device = Device.cpu):
     """Quantize a model to a specific dtype and device.
 
@@ -36,6 +74,8 @@ def quant_interface(model: Any, dtype: Union[Dtype] = Dtype.int8, device: Device
     """
     device_orig = model.device
     if device == Device.cpu and dtype in [Dtype.int8, Dtype.auto, torch.int8]:
+        if not dynamic_int8_runs_here():
+            return model
         logger.info("using torch.quantization.quantize_dynamic()")
         # TODO: verify if cpu requires quantization with torch.quantization.quantize_dynamic()
         model = torch.quantization.quantize_dynamic(

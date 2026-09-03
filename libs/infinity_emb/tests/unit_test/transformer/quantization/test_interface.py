@@ -5,7 +5,10 @@ import torch
 from transformers import AutoTokenizer, BertModel  # type: ignore
 
 from infinity_emb.primitives import Device, Dtype
-from infinity_emb.transformer.quantization.interface import quant_interface
+from infinity_emb.transformer.quantization.interface import (
+    dynamic_int8_runs_here,
+    quant_interface,
+)
 
 devices = [Device.cpu]
 if torch.cuda.is_available():
@@ -31,6 +34,8 @@ def test_quantize_bert(device: Device, dtype: Dtype):
         device (Device): device to use for inference.
         dtype (Dtype): data type for quantization
     """
+    if device == Device.cpu and not dynamic_int8_runs_here():
+        pytest.skip("int8 dynamic quantization crashes on this CPU, quant_interface keeps fp32")
     model, tokenizer = get_model(device.resolve())
     model_unquantized, _ = get_model(device.resolve())
     model = quant_interface(model=model, device=device, dtype=dtype)
