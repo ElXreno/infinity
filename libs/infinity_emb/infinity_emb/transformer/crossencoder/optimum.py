@@ -5,7 +5,7 @@ import copy
 
 import numpy as np
 
-from infinity_emb._optional_imports import CHECK_ONNXRUNTIME
+from infinity_emb._optional_imports import CHECK_ONNXRUNTIME, CHECK_TRANSFORMERS
 from infinity_emb.args import EngineArgs
 from infinity_emb.primitives import RerankLimits
 from infinity_emb.transformer.abstract import BaseCrossEncoder
@@ -14,17 +14,11 @@ from infinity_emb.transformer.padding import padding_bucket
 from infinity_emb.transformer.utils_optimum import (
     device_to_onnx,
     get_onnx_files,
-    optimize_model,
+    load_onnx_model,
 )
 
-if CHECK_ONNXRUNTIME.is_available:
-    try:
-        from optimum.onnxruntime import (  # type: ignore
-            ORTModelForSequenceClassification,
-        )
-        from transformers import AutoConfig, AutoTokenizer  # type: ignore
-    except (ImportError, RuntimeError, Exception) as ex:
-        CHECK_ONNXRUNTIME.mark_dirty(ex)
+if CHECK_TRANSFORMERS.is_available:
+    from transformers import AutoTokenizer  # type: ignore[import-untyped]
 
 
 class OptimumCrossEncoder(BaseCrossEncoder):
@@ -39,23 +33,17 @@ class OptimumCrossEncoder(BaseCrossEncoder):
             prefer_quantized=("cpu" in provider.lower() or "openvino" in provider.lower()) and not engine_args.onnx_do_not_prefer_quantized,
         )
 
-        self.model = optimize_model(
+        self.model = load_onnx_model(
             engine_args.model_name_or_path,
             execution_provider=provider,
             file_name=onnx_file.as_posix(),
             optimize_model=not engine_args.onnx_disable_optimize,
-            model_class=ORTModelForSequenceClassification,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,
             provider_options=engine_args.onnx_provider_options_dict(),
         )
-        self.model.use_io_binding = False
+        self.config = self.model.config
         self.tokenizer = AutoTokenizer.from_pretrained(
-            engine_args.model_name_or_path,
-            revision=engine_args.revision,
-            trust_remote_code=engine_args.trust_remote_code,
-        )
-        self.config = AutoConfig.from_pretrained(
             engine_args.model_name_or_path,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,
@@ -99,20 +87,17 @@ class OptimumCrossEncoder(BaseCrossEncoder):
             )
             for q, d, lim in zip(queries, documents, limits)
         ]
-        encoded = self.tokenizer.pad(
+        padded = self.tokenizer.pad(
             encodings,
             padding=True,
             pad_to_multiple_of=pad_to_multiple_of,
             return_tensors="np",
         )
         # Windows requires int64
-        encoded = {k: v.astype(np.int64) for k, v in encoded.items()}
-        return encoded
+        return {k: v.astype(np.int64) for k, v in padded.items()}
 
     def encode_core(self, features: dict[str, np.ndarray]) -> np.ndarray:
-        outputs = self.model(**features, return_dict=True)
-
-        return outputs.logits
+        return self.model(**features)["logits"]
 
     def encode_post(self, out_features: np.ndarray) -> list[float]:
         return out_features.flatten().astype(np.float32).tolist()

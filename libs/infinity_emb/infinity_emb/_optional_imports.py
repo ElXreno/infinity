@@ -62,9 +62,8 @@ CHECK_COLPALI_ENGINE = OptionalImports("colpali_engine", "vision")
 CHECK_CTRANSLATE2 = OptionalImports("ctranslate2", "ctranslate2")
 CHECK_DISKCACHE = OptionalImports("diskcache", "cache")
 CHECK_FASTAPI = OptionalImports("fastapi", "server")
-CHECK_ONNXRUNTIME = OptionalImports("optimum.onnxruntime", "optimum")
-CHECK_OPTIMUM = OptionalImports("optimum", "optimum")
-CHECK_OPTIMUM_AMD = OptionalImports("optimum.amd", "optimum")
+CHECK_ONNX = OptionalImports("onnx", "optimum")
+CHECK_ONNXRUNTIME = OptionalImports("onnxruntime", "optimum")
 CHECK_OPTIMUM_NEURON = OptionalImports(
     "optimum.neuron",
     "<neuronx not available as extra, only runs on AMI image, no pip install possible.>",

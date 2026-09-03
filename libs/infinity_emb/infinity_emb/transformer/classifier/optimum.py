@@ -4,27 +4,21 @@
 import copy
 from typing import Any
 
+import numpy as np
+
 from infinity_emb._optional_imports import CHECK_ONNXRUNTIME, CHECK_TRANSFORMERS
 from infinity_emb.args import EngineArgs
 from infinity_emb.transformer.abstract import BaseClassifer
 from infinity_emb.transformer.classifier import classification_activation
+from infinity_emb.transformer.padding import padding_bucket
 from infinity_emb.transformer.utils_optimum import (
     device_to_onnx,
     get_onnx_files,
-    optimize_model,
+    load_onnx_model,
 )
 
-if CHECK_ONNXRUNTIME.is_available:
-    try:
-        from optimum.onnxruntime import (  # type: ignore[import-untyped]
-            ORTModelForSequenceClassification,
-        )
-
-    except (ImportError, RuntimeError, Exception) as ex:
-        CHECK_ONNXRUNTIME.mark_dirty(ex)
-
 if CHECK_TRANSFORMERS.is_available:
-    from transformers import AutoTokenizer, pipeline  # type: ignore[import-untyped]
+    from transformers import AutoTokenizer  # type: ignore[import-untyped]
 
 
 class OptimumClassifier(BaseClassifer):
@@ -37,12 +31,12 @@ class OptimumClassifier(BaseClassifer):
             model_name_or_path=engine_args.model_name_or_path,
             revision=engine_args.revision,
             use_auth_token=True,
-            prefer_quantized=("cpu" in provider.lower() or "openvino" in provider.lower()) and not engine_args.onnx_do_not_prefer_quantized,
+            prefer_quantized=("cpu" in provider.lower() or "openvino" in provider.lower())
+            and not engine_args.onnx_do_not_prefer_quantized,
         )
 
-        model = optimize_model(
+        self.model = load_onnx_model(
             model_name_or_path=engine_args.model_name_or_path,
-            model_class=ORTModelForSequenceClassification,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,
             execution_provider=provider,
@@ -50,40 +44,46 @@ class OptimumClassifier(BaseClassifer):
             optimize_model=not engine_args.onnx_disable_optimize,
             provider_options=engine_args.onnx_provider_options_dict(),
         )
-        model.use_io_binding = False
-        self.classification_activation = classification_activation(model.config)
+        self.config = self.model.config
+        self.classification_activation = classification_activation(self.config)
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             engine_args.model_name_or_path,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,
         )
-
         self._infinity_tokenizer = copy.deepcopy(self.tokenizer)
+        self.engine_args = engine_args
 
-        self._pipe = pipeline(
-            task="text-classification",
-            model=model,
-            trust_remote_code=engine_args.trust_remote_code,
-            top_k=None,
-            revision=engine_args.revision,
-            tokenizer=self.tokenizer,
+    def encode_pre(self, sentences: list[str]) -> dict[str, np.ndarray]:
+        pad_to_multiple_of, max_length = padding_bucket(
+            self.config.max_position_embeddings, self.engine_args.pad_to_multiple_of
         )
+        encoded = self.tokenizer(
+            sentences,
+            max_length=max_length,
+            padding=True,
+            pad_to_multiple_of=pad_to_multiple_of,
+            truncation=True,
+            return_tensors="np",
+        )
+        return {k: v.astype(np.int64) for k, v in encoded.items()}
 
-    def encode_pre(self, sentences: list[str]):
-        return sentences
+    def encode_core(self, features: dict[str, np.ndarray]) -> np.ndarray:
+        return self.model(**features)["logits"]
 
-    def encode_core(self, sentences: list[str]) -> list[Any]:
-        outputs = self._pipe(sentences, function_to_apply="none")
-        return outputs
-
-    def encode_post(self, classes) -> dict[str, float]:
-        """runs post encoding such as normalization"""
-        return classes
+    def encode_post(self, logits: np.ndarray) -> list[Any]:
+        """one list per sentence, every label with its raw logit, best first"""
+        id2label = self.config.id2label
+        results = []
+        for row in np.asarray(logits, dtype=np.float32):
+            order = np.argsort(-row)
+            results.append([{"label": id2label[int(i)], "score": float(row[i])} for i in order])
+        return results
 
     def tokenize_lengths(self, sentences: list[str]) -> list[int]:
         """gets the lengths of each sentences according to tokenize/len etc."""
-        tks = self._infinity_tokenizer.batch_encode_plus(
+        tks = self._infinity_tokenizer(
             sentences,
             add_special_tokens=False,
             return_token_type_ids=False,

@@ -1,34 +1,176 @@
 from pathlib import Path
+from types import SimpleNamespace
 from typing import ClassVar
 
 import pytest
 
 from infinity_emb.transformer import utils_optimum
-from infinity_emb.transformer.utils_optimum import optimize_model
+from infinity_emb.transformer.utils_optimum import OnnxOutputs, load_onnx_model
 
 PROVIDER = "CPUExecutionProvider"
 MODEL = "fake-org/fake-model"
 
 
-class _RecordingModel:
+class _RecordingSession:
     calls: ClassVar[list[dict]] = []
     fail_on: ClassVar[str] = ""
 
-    @classmethod
-    def from_pretrained(cls, model_name_or_path, **kwargs):
-        cls.calls.append({"model_name_or_path": model_name_or_path, **kwargs})
-        if cls.fail_on and kwargs["file_name"].endswith(cls.fail_on):
-            raise RuntimeError(f"cannot load {kwargs['file_name']}")
-        return (model_name_or_path, kwargs["file_name"])
+    def __init__(self, model_path, config, execution_provider, provider_options=None):
+        self.model_path = Path(model_path)
+        self.config = config
+        self.execution_provider = execution_provider
+        self.provider_options = dict(provider_options or {})
+        type(self).calls.append(
+            {
+                "model_path": self.model_path,
+                "execution_provider": execution_provider,
+                "provider_options": self.provider_options,
+            }
+        )
+        if type(self).fail_on and self.model_path.name.endswith(type(self).fail_on):
+            raise RuntimeError(f"cannot load {self.model_path.name}")
 
 
 @pytest.fixture
-def recording_model(monkeypatch, tmp_path):
-    monkeypatch.setattr(utils_optimum, "HUGGINGFACE_HUB_CACHE", tmp_path.as_posix())
-    monkeypatch.setattr(utils_optimum, "symlink_free_model_dir", lambda repo, *_, **__: repo)
-    _RecordingModel.calls = []
-    _RecordingModel.fail_on = ""
-    return _RecordingModel
+def model_dir(tmp_path):
+    model = tmp_path / "model"
+    (model / "onnx").mkdir(parents=True)
+    (model / "onnx" / "model.onnx").write_bytes(b"")
+    (model / "onnx" / "model_quantized.onnx").write_bytes(b"")
+    return model
+
+
+@pytest.fixture
+def recording_session(monkeypatch, tmp_path):
+    monkeypatch.setattr(utils_optimum, "HUGGINGFACE_HUB_CACHE", (tmp_path / "hub").as_posix())
+    monkeypatch.setattr(utils_optimum, "OnnxModel", _RecordingSession)
+    monkeypatch.setattr(
+        utils_optimum,
+        "AutoConfig",
+        SimpleNamespace(from_pretrained=lambda *a, **k: SimpleNamespace(model_type="bert")),
+    )
+    _RecordingSession.calls = []
+    _RecordingSession.fail_on = ""
+    return _RecordingSession
+
+
+def _load(model_dir, **kwargs):
+    defaults = {
+        "execution_provider": PROVIDER,
+        "file_name": "onnx/model.onnx",
+        "optimize_model": False,
+    }
+    return load_onnx_model(model_dir.as_posix(), **{**defaults, **kwargs})
+
+
+def test_onnx_file_in_subfolder_resolves_inside_the_model_dir(recording_session, model_dir):
+    _load(model_dir, file_name="onnx/model_quantized.onnx")
+
+    assert recording_session.calls[0]["model_path"] == model_dir / "onnx" / "model_quantized.onnx"
+
+
+def test_absolute_onnx_file_is_kept(recording_session, model_dir):
+    _load(model_dir, file_name=(model_dir / "onnx" / "model.onnx").as_posix())
+
+    assert recording_session.calls[0]["model_path"] == model_dir / "onnx" / "model.onnx"
+
+
+def test_provider_options_are_forwarded(recording_session, model_dir):
+    _load(model_dir, provider_options={"num_of_threads": 4})
+
+    assert recording_session.calls[0]["provider_options"] == {"num_of_threads": 4}
+
+
+def test_empty_provider_options_stay_empty(recording_session, model_dir):
+    _load(model_dir)
+
+    assert recording_session.calls[0]["provider_options"] == {}
+
+
+def test_provider_options_override_tensorrt_defaults(recording_session, model_dir):
+    _load(
+        model_dir,
+        execution_provider="TensorrtExecutionProvider",
+        optimize_model=True,
+        provider_options={"trt_fp16_enable": False, "trt_max_workspace_size": 1 << 30},
+    )
+
+    call = recording_session.calls[0]
+    assert call["provider_options"]["trt_fp16_enable"] is False
+    assert call["provider_options"]["trt_max_workspace_size"] == 1 << 30
+    assert call["provider_options"]["trt_cuda_graph_enable"] is True
+    assert call["model_path"].name == "model.onnx"
+
+
+def _optimized_path(tmp_path, model_dir):
+    return (
+        tmp_path
+        / "hub"
+        / "infinity_onnx"
+        / PROVIDER
+        / model_dir.as_posix().lstrip("/")
+        / "model_optimized.onnx"
+    )
+
+
+def test_optimizes_once_and_reuses_the_cached_graph(recording_session, model_dir, monkeypatch):
+    optimized = []
+
+    def fake_optimize_graph(model_path, output_path, config, execution_provider):
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"optimized")
+        optimized.append(output_path)
+        return output_path
+
+    monkeypatch.setattr(utils_optimum, "optimize_graph", fake_optimize_graph)
+
+    _load(model_dir, optimize_model=True)
+    _load(model_dir, optimize_model=True)
+
+    assert len(optimized) == 1
+    assert optimized[0].name == "model_optimized.onnx"
+    assert [c["model_path"].name for c in recording_session.calls] == [
+        "model_optimized.onnx",
+        "model_optimized.onnx",
+    ]
+
+
+def test_broken_cached_optimized_model_falls_back(
+    recording_session, model_dir, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(utils_optimum, "HUGGINGFACE_HUB_CACHE", (tmp_path / "hub").as_posix())
+    optimized = tmp_path / "hub" / "infinity_onnx" / PROVIDER / model_dir.as_posix().lstrip("/")
+    optimized.mkdir(parents=True)
+    (optimized / "model_optimized.onnx").write_bytes(b"broken")
+    recording_session.fail_on = "_optimized.onnx"
+
+    model = _load(model_dir, optimize_model=True)
+
+    assert model.model_path == model_dir / "onnx" / "model.onnx"
+    assert [c["model_path"].name for c in recording_session.calls] == [
+        "model_optimized.onnx",
+        "model.onnx",
+    ]
+
+
+def test_failed_optimization_falls_back(recording_session, model_dir, monkeypatch):
+    def broken_optimize_graph(*args, **kwargs):
+        raise RuntimeError("fusion failed")
+
+    monkeypatch.setattr(utils_optimum, "optimize_graph", broken_optimize_graph)
+
+    model = _load(model_dir, optimize_model=True)
+
+    assert model.model_path == model_dir / "onnx" / "model.onnx"
+
+
+def test_onnx_outputs_attribute_access():
+    outputs = OnnxOutputs(logits=[[1.0]])
+
+    assert outputs.logits == [[1.0]]
+    assert outputs["logits"] == [[1.0]]
+    with pytest.raises(AttributeError):
+        outputs.last_hidden_state
 
 
 def test_symlink_free_model_dir_hardlinks_the_snapshot(monkeypatch, tmp_path):
@@ -71,99 +213,3 @@ def test_symlink_free_model_dir_keeps_local_and_plain_paths(monkeypatch, tmp_pat
     (plain / "model.onnx").write_bytes(b"x")
     monkeypatch.setattr(utils_optimum, "snapshot_download", lambda *a, **k: plain.as_posix())
     assert utils_optimum.symlink_free_model_dir(MODEL, "model.onnx", None) == plain.as_posix()
-
-
-def _cache_optimized_file(tmp_path):
-    folder = tmp_path / "infinity_onnx" / PROVIDER / MODEL
-    folder.mkdir(parents=True)
-    optimized = folder / "model_optimized.onnx"
-    optimized.write_bytes(b"")
-    return optimized
-
-
-def test_cached_optimized_model_is_used(recording_model, tmp_path):
-    optimized = _cache_optimized_file(tmp_path)
-
-    model = optimize_model(
-        MODEL,
-        model_class=recording_model,
-        execution_provider=PROVIDER,
-        file_name="model.onnx",
-        optimize_model=True,
-    )
-
-    assert model == (optimized.parent.as_posix(), "model_optimized.onnx")
-    assert len(recording_model.calls) == 1
-
-
-def test_broken_cached_optimized_model_falls_back(recording_model, tmp_path):
-    _cache_optimized_file(tmp_path)
-    recording_model.fail_on = "_optimized.onnx"
-
-    model = optimize_model(
-        MODEL,
-        model_class=recording_model,
-        execution_provider=PROVIDER,
-        file_name="model.onnx",
-        optimize_model=True,
-    )
-
-    assert model == (MODEL, "model.onnx")
-    assert [c["file_name"] for c in recording_model.calls] == [
-        "model_optimized.onnx",
-        "model.onnx",
-    ]
-
-
-def test_onnx_file_in_subfolder_is_split(recording_model):
-    optimize_model(
-        MODEL,
-        model_class=recording_model,
-        execution_provider=PROVIDER,
-        file_name="onnx/model_quantized.onnx",
-        optimize_model=False,
-    )
-
-    call = recording_model.calls[0]
-    assert call["file_name"] == "model_quantized.onnx"
-    assert call["subfolder"] == "onnx"
-
-
-def test_provider_options_are_forwarded(recording_model):
-    optimize_model(
-        MODEL,
-        model_class=recording_model,
-        execution_provider=PROVIDER,
-        file_name="model.onnx",
-        optimize_model=False,
-        provider_options={"num_of_threads": 4},
-    )
-
-    assert recording_model.calls[0]["provider_options"] == {"num_of_threads": 4}
-
-
-def test_empty_provider_options_pass_none(recording_model):
-    optimize_model(
-        MODEL,
-        model_class=recording_model,
-        execution_provider=PROVIDER,
-        file_name="model.onnx",
-        optimize_model=False,
-    )
-
-    assert recording_model.calls[0]["provider_options"] is None
-
-
-def test_provider_options_override_tensorrt_defaults(recording_model):
-    optimize_model(
-        MODEL,
-        model_class=recording_model,
-        execution_provider="TensorrtExecutionProvider",
-        file_name="model.onnx",
-        provider_options={"trt_fp16_enable": False, "trt_max_workspace_size": 1 << 30},
-    )
-
-    options = recording_model.calls[0]["provider_options"]
-    assert options["trt_fp16_enable"] is False
-    assert options["trt_max_workspace_size"] == 1 << 30
-    assert options["trt_cuda_graph_enable"] is True

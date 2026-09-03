@@ -15,22 +15,13 @@ from infinity_emb.transformer.utils_optimum import (
     cls_token_pooling,
     device_to_onnx,
     get_onnx_files,
+    load_onnx_model,
     mean_pooling,
     normalize,
-    optimize_model,
 )
 
-if CHECK_ONNXRUNTIME.is_available:
-    try:
-        from optimum.onnxruntime import (  # type: ignore[import-untyped]
-            ORTModelForFeatureExtraction,
-        )
-
-    except (ImportError, RuntimeError, Exception) as ex:
-        CHECK_ONNXRUNTIME.mark_dirty(ex)
-
 if CHECK_TRANSFORMERS.is_available:
-    from transformers import AutoConfig, AutoTokenizer  # type: ignore[import-untyped]
+    from transformers import AutoTokenizer  # type: ignore[import-untyped]
 
 
 class OptimumEmbedder(BaseEmbedder):
@@ -49,24 +40,18 @@ class OptimumEmbedder(BaseEmbedder):
             mean_pooling if engine_args.pooling_method == PoolingMethod.mean else cls_token_pooling
         )
 
-        self.model = optimize_model(
+        self.model = load_onnx_model(
             model_name_or_path=engine_args.model_name_or_path,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,
             execution_provider=provider,
             file_name=onnx_file.as_posix(),
             optimize_model=not engine_args.onnx_disable_optimize,
-            model_class=ORTModelForFeatureExtraction,
             provider_options=engine_args.onnx_provider_options_dict(),
         )
-        self.model.use_io_binding = False
+        self.config = self.model.config
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            engine_args.model_name_or_path,
-            revision=engine_args.revision,
-            trust_remote_code=engine_args.trust_remote_code,
-        )
-        self.config = AutoConfig.from_pretrained(
             engine_args.model_name_or_path,
             revision=engine_args.revision,
             trust_remote_code=engine_args.trust_remote_code,

@@ -185,7 +185,7 @@ class BaseClassifer(BaseTransformer):  # Inherit from ABC(Abstract base class)
         """takes care of the tokenization and feature preparation"""
 
     @abstractmethod
-    def encode_post(self, embedding: OUT_FEATURES) -> dict[str, float]:
+    def encode_post(self, embedding: OUT_FEATURES) -> list[Any]:
         """runs post encoding such as normalization"""
 
     def warmup(self, *, batch_size: int = 64, n_tokens=1) -> tuple[float, float, str]:
