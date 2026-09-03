@@ -7,6 +7,8 @@ All notable changes to this fork are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-03
+
 ### Fixed
 
 - The `optimum` engine failed with `KeyError: 'last_hidden_state'` on ONNX exports of
