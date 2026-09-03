@@ -23,6 +23,30 @@
 
 Infinity is a high-throughput, low-latency REST API for serving text-embeddings, reranking models, clip, clap and colpali. Infinity is developed under [MIT License](https://github.com/michaelfeil/infinity/blob/main/LICENSE).
 
+## Why this fork
+
+[michaelfeil/infinity](https://github.com/michaelfeil/infinity) has been idle since March 2026 with
+open bugs and pull requests. This fork keeps it deployable:
+
+* **Memory stays flat on CPU.** OpenVINO's CPU plugin (and oneDNN, and torch CPU) caches kernels
+  per input shape, so a server that sees ever-new `(batch, sequence length)` pairs grows without
+  bound: a production instance went from 12 GiB to 34 GiB RSS in a month. `--pad-to-multiple-of`
+  makes the shape set finite; the leak stops after warm-up at a few percent of extra compute.
+* **Execution provider settings are reachable.** `--onnx-provider-options` forwards a JSON object
+  to onnxruntime's provider options (`num_of_threads`, `load_config`, TensorRT flags).
+* **Upstream fixes are merged.** Worker failures surface as `503` with the root cause instead of
+  hanging requests and endless `429`s, disk-cache writes can't kill the writer thread, classifiers
+  without `pad_token_id` load, rerank token limits are enforced per model, a broken cached
+  optimized ONNX file no longer prevents startup.
+* **Dependencies are current.** Python 3.12, torch 2.14, transformers 5, sentence-transformers 6,
+  onnxruntime 1.24 (OpenVINO build in the CPU image). The ONNX engine uses onnxruntime directly,
+  so the `optimum` packages and their `transformers<4.58` pin are gone. Images on
+  `ghcr.io/elxreno/infinity:<version>-cpu` for `linux/amd64` and `linux/arm64`, scanned with
+  Trivy, kept fresh by Renovate.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list. The API, CLI and Python interface are unchanged;
+the fork is a drop-in replacement for `michaelf34/infinity:0.0.77-cpu`.
+
 ## Why Infinity
 * **Deploy any model from HuggingFace**: deploy any embedding, reranking, clip and sentence-transformer model from [HuggingFace]( https://huggingface.co/models?other=text-embeddings-inference&sort=trending)
 * **Fast inference backends**: The inference server is built on top of [PyTorch](https://github.com/pytorch/pytorch), [optimum (ONNX/TensorRT)](https://huggingface.co/docs/optimum/index) and [CTranslate2](https://github.com/OpenNMT/CTranslate2), using FlashAttention to get the most out of your **NVIDIA CUDA**, **AMD ROCM**, **CPU**, **AWS INF2** or **APPLE MPS** accelerator. Infinity uses dynamic batching and tokenization dedicated in worker threads.
