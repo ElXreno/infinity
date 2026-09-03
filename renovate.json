@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", ":pinDigests"],
+  "enabledManagers": ["poetry", "github-actions"],
+  "timezone": "Europe/Moscow",
+  "schedule": ["before 6am on monday"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "optimum-onnx (optimum.onnxruntime) pins transformers <4.58 and optimum ~=2.1",
+      "matchManagers": ["poetry"],
+      "matchPackageNames": ["transformers"],
+      "allowedVersions": "<4.58"
+    },
+    {
+      "matchManagers": ["poetry"],
+      "matchPackageNames": ["optimum"],
+      "allowedVersions": "<2.2"
+    },
+    {
+      "matchManagers": ["poetry"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "python dependencies"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ]
+}
