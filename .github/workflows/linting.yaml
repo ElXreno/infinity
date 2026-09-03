@@ -61,7 +61,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           poetry-version: ${{ env.POETRY_VERSION }}
           working-directory: ${{ inputs.working-directory }}
-          cache-key: lint-with-extra
+          cache-key: lint-cpu
 
       - name: Check Poetry File
         shell: bash
@@ -85,8 +85,14 @@ jobs:
         # in the `poetry_setup` action above to stop using the old cache.
         # It doesn't matter how you change it, any change will cause a cache-bust .
         working-directory: ${{ inputs.working-directory }}
+        shell: bash
         run: |
-          poetry install ${{ inputs.extra_poetry }}
+          if [[ "$RUNNER_OS" == "Linux" && -f requirements_install_from_poetry.sh ]]; then
+            # CPU wheels: torch from PyPI drags the CUDA toolkit in, 6 GB the linters never load
+            EXTRAS=all ./requirements_install_from_poetry.sh --keep-venv --with test,lint,codespell https://download.pytorch.org/whl/cpu
+          else
+            poetry install ${{ inputs.extra_poetry }}
+          fi
 
       - name: Get .mypy_cache to speed up mypy
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
