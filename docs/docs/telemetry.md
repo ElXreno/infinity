@@ -20,15 +20,16 @@ Examples how this improves infinity:
     - prioritizes: apple mps / neuron / AMD depelopment 
 - CLI args, to deprecate old ones or less popular ones such as onnx/tensorrt gpu + optimum or ctranslate2. Or to see if the v1 of the cli is still used.
 
-## Disable Telemetry
-You can disable tracking like the following:
+## Telemetry is off by default in this fork
+
+Nothing is sent unless you opt in. The events still go to the PostHog project of the upstream
+author (see the file linked below), so enable it only if you want to contribute usage data there:
 
 ```bash
-# set 
-export DO_NOT_TRACK="1"
-# infinity specific setting
-export INFINITY_ANONYMOUS_USAGE_STATS="0"
+export INFINITY_ANONYMOUS_USAGE_STATS="1"
 ```
+
+`DO_NOT_TRACK="1"` always wins over that setting.
 
 This is in line with various FOSS projects:
 - https://docs.vllm.ai/en/latest/serving/usage_stats.html#usage-stats-collection

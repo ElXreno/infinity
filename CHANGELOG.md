@@ -25,6 +25,11 @@ All notable changes to this fork are documented here. The format follows
 
 ### Changed
 
+- Anonymized telemetry (engine arguments, model ids and system facts posted to the upstream
+  author's PostHog project) is off by default; `INFINITY_ANONYMOUS_USAGE_STATS=1` opts in and
+  `DO_NOT_TRACK=1` still wins.
+- The image build installs the dependencies once and reuses that virtualenv for the package and
+  the lint/test groups; the CI no longer lints or tests the legacy `embed_package` client.
 - The `-cpu` image is built natively per platform (`ubuntu-24.04-arm` for arm64 instead of QEMU)
   with the layer cache kept in ghcr (`buildcache-<platform>` tags); the test jobs install CPU
   torch wheels and share one virtualenv cache.

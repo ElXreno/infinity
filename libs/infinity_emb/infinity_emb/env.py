@@ -196,7 +196,7 @@ class __Infinity_EnvManager:
         tracking_allowed = self._to_bool(
             self._optional_infinity_var(
                 "anonymous_usage_stats",
-                default="true",
+                default="false",
             )
         )
         tracking_allowed_2 = not self._to_bool(os.getenv("DO_NOT_TRACK", "0"))
