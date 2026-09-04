@@ -110,7 +110,8 @@ sed -i '/triton/d' requirements.txt
 # Step 5: Install torch with the extracted version and other dependencies
 
 python -m pip install -r requirements.txt --no-cache-dir --extra-index-url "$EXTRA_URL"
-python -m pip list --format=freeze | grep nvidia | xargs python -m  pip uninstall -y triton torch torchvision
+# only when CUDA wheels sneaked in: with an already CPU-only venv there is nothing to replace
+python -m pip list --format=freeze | grep nvidia | xargs -r python -m pip uninstall -y triton torch torchvision
 # shellcheck disable=SC2086
 python -m pip install $TORCH_SPEC --index-url "$EXTRA_URL" --no-cache-dir
 

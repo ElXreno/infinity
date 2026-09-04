@@ -39,14 +39,14 @@ COPY poetry.lock poetry.toml pyproject.toml README.md /app/
 {{pyproject_sed | default('#')}}
 {{main_install}}
 COPY infinity_emb infinity_emb
-# Install dependency with infinity_emb package
-{{main_install|replace("--no-root","")}}
+# Install the infinity_emb package into the venv built above
+{{main_install|replace("--no-root", "--keep-venv" if "requirements_install_from_poetry" in main_install else "")}}
 {{extra_installs_main | default('#')}}
 RUN rm -rf ~/.cache/ /tmp/*
 
 FROM builder AS testing
 # install lint and test dependencies
-{{main_install|replace("--without", "--with")|replace("--no-root","")}}
+{{main_install|replace("--without", "--with")|replace("--no-root", "--keep-venv" if "requirements_install_from_poetry" in main_install else "")}}
 # lint 
 RUN poetry run ruff check .
 RUN poetry run mypy .

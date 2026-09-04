@@ -46,10 +46,10 @@ COPY requirements_install_from_poetry.sh requirements_install_from_poetry.sh
 RUN ./requirements_install_from_poetry.sh --no-root --without lint,test "https://download.pytorch.org/whl/rocm6.2"
 
 COPY infinity_emb infinity_emb
-# Install dependency with infinity_emb package
-# "RUN poetry install --no-interaction --no-ansi  --extras \"${EXTRAS}\" --without lint,test && poetry cache clear pypi --all"
+# Install the infinity_emb package into the venv built above
+# "RUN poetry install --no-interaction --no-ansi --keep-venv --extras \"${EXTRAS}\" --without lint,test && poetry cache clear pypi --all"
 COPY requirements_install_from_poetry.sh requirements_install_from_poetry.sh
-RUN ./requirements_install_from_poetry.sh  --without lint,test "https://download.pytorch.org/whl/rocm6.2"
+RUN ./requirements_install_from_poetry.sh --keep-venv --without lint,test "https://download.pytorch.org/whl/rocm6.2"
 
 ARG GPU_ARCH
 ENV GPU_ARCH=${GPU_ARCH}
@@ -89,9 +89,9 @@ RUN rm -rf ~/.cache/ /tmp/*
 
 FROM builder AS testing
 # install lint and test dependencies
-# "RUN poetry install --no-interaction --no-ansi  --extras \"${EXTRAS}\" --with lint,test && poetry cache clear pypi --all"
+# "RUN poetry install --no-interaction --no-ansi --keep-venv --extras \"${EXTRAS}\" --with lint,test && poetry cache clear pypi --all"
 COPY requirements_install_from_poetry.sh requirements_install_from_poetry.sh
-RUN ./requirements_install_from_poetry.sh  --with lint,test "https://download.pytorch.org/whl/rocm6.2"
+RUN ./requirements_install_from_poetry.sh --keep-venv --with lint,test "https://download.pytorch.org/whl/rocm6.2"
 
 # lint 
 RUN poetry run ruff check .

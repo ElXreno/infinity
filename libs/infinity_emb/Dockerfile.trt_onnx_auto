@@ -44,7 +44,7 @@ COPY poetry.lock poetry.toml pyproject.toml README.md /app/
 #
 RUN poetry install --no-interaction --no-ansi --no-root --extras "${EXTRAS}" --without lint,test && poetry cache clear pypi --all
 COPY infinity_emb infinity_emb
-# Install dependency with infinity_emb package
+# Install the infinity_emb package into the venv built above
 RUN poetry install --no-interaction --no-ansi  --extras "${EXTRAS}" --without lint,test && poetry cache clear pypi --all
 # Install utils for tensorrt
 RUN apt-get install -y --no-install-recommends openmpi-bin libopenmpi-dev git git-lfs python3-pip
