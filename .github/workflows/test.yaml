@@ -76,6 +76,8 @@ jobs:
 
       - name: Cache HuggingFace models
         id: cache-models
+        # Linux only: the 10 GB repository quota cannot hold a second copy of the models for Windows
+        if: runner.os == 'Linux'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
@@ -152,6 +154,8 @@ jobs:
 
       - name: Cached HuggingFace models
         id: cache-models
+        # Linux only: the 10 GB repository quota cannot hold a second copy of the models for Windows
+        if: runner.os == 'Linux'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
