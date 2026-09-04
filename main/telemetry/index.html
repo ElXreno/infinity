@@ -536,10 +536,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#disable-telemetry" class="md-nav__link">
+  <a href="#telemetry-is-off-by-default-in-this-fork" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Disable Telemetry
+        Telemetry is off by default in this fork
       
     </span>
   </a>
@@ -614,10 +614,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#disable-telemetry" class="md-nav__link">
+  <a href="#telemetry-is-off-by-default-in-this-fork" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Disable Telemetry
+        Telemetry is off by default in this fork
       
     </span>
   </a>
@@ -675,13 +675,12 @@
 - Devices: 
     - prioritizes: apple mps / neuron / AMD depelopment 
 - CLI args, to deprecate old ones or less popular ones such as onnx/tensorrt gpu + optimum or ctranslate2. Or to see if the v1 of the cli is still used.</p>
-<h2 id="disable-telemetry">Disable Telemetry</h2>
-<p>You can disable tracking like the following:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># set </span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DO_NOT_TRACK</span><span class="o">=</span><span class="s2">"1"</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># infinity specific setting</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">INFINITY_ANONYMOUS_USAGE_STATS</span><span class="o">=</span><span class="s2">"0"</span>
+<h2 id="telemetry-is-off-by-default-in-this-fork">Telemetry is off by default in this fork</h2>
+<p>Nothing is sent unless you opt in. The events still go to the PostHog project of the upstream
+author (see the file linked below), so enable it only if you want to contribute usage data there:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">INFINITY_ANONYMOUS_USAGE_STATS</span><span class="o">=</span><span class="s2">"1"</span>
 </span></code></pre></div>
+<p><code>DO_NOT_TRACK="1"</code> always wins over that setting.</p>
 <p>This is in line with various FOSS projects:
 - https://docs.vllm.ai/en/latest/serving/usage_stats.html#usage-stats-collection
 - https://docs.ray.io/en/latest/cluster/usage-stats.html
