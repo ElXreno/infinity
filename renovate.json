@@ -3,6 +3,7 @@
   "extends": ["config:recommended", ":semanticCommits", "helpers:pinGitHubActionDigests"],
   "forkProcessing": "enabled",
   "enabledManagers": ["poetry", "github-actions"],
+  "ignorePaths": ["libs/embed_package/**", "libs/client_infinity/**", "infra/**"],
   "timezone": "Europe/Moscow",
   "schedule": ["before 6am on monday"],
   "lockFileMaintenance": {
