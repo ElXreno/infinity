@@ -167,6 +167,18 @@ markers = [
 
 [tool.ruff]
 line-length = 100
+# poetry keeps the floor in [tool.poetry.dependencies], where ruff cannot see it
+target-version = "py312"
+
+[tool.ruff.lint.flake8-bugbear]
+# typer and fastapi declare defaults by calling these, and they return a fresh immutable value
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "typer.Option",
+    "typer.Argument",
+    "infinity_emb.cli._construct",
+    "infinity_emb.primitives.EmbeddingDtype.default_value",
+]
 
 [[tool.mypy.overrides]]
 module = ["aiohttp.*"]
