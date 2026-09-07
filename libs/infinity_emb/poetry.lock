@@ -2502,13 +2502,13 @@ files = [
 
 [[package]]
 name = "mypy-protobuf"
-version = "3.7.0"
+version = "5.1.0"
 description = "Generate mypy stub files from protobuf specs"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mypy_protobuf-3.7.0-py3-none-any.whl", hash = "sha256:85256e9d4da935722ce8fbaa8d19397e1a2989aa8075c96577987de9fe7cea4d"},
-    {file = "mypy_protobuf-3.7.0.tar.gz", hash = "sha256:912fb281f7c7b3e3a7c9b8695712618a716fddbab70f6ad63eaf68eda80c5efe"},
+    {file = "mypy_protobuf-5.1.0-py3-none-any.whl", hash = "sha256:d7031f563f806b8bcd448a3e86768bf0994c0af5b0017b344a4fbbba4191f43c"},
+    {file = "mypy_protobuf-5.1.0.tar.gz", hash = "sha256:8493758852a9cdc075a11dbe96c6e37ea2feba5fd5f33ef7442b9a275322a94c"},
 ]
 
 [package.dependencies]
@@ -5553,4 +5553,4 @@ vision = ["aiohttp", "pillow", "timm", "torchvision"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<3.14"
-content-hash = "e280a2eabc908125b350e8ba8cfa94ac93005cd9eba40865253b4b164e7df236"
+content-hash = "49a0615d11353a54433559da091536a58e1ba01ea9eeb23df9993b25b0e63df6"
