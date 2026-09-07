@@ -75,12 +75,11 @@ def get_system_properties():
     gpu_count = 0
     gpu_type = ""
     gpu_memory_per_device_mb = 0
-    if CHECK_TORCH.is_available:
-        if torch.cuda.is_available():
-            device_property = torch.cuda.get_device_properties(0)
-            gpu_count = torch.cuda.device_count()
-            gpu_type = str(device_property.name)
-            gpu_memory_per_device_mb = int(device_property.total_memory) * 1000000 / 1024**2
+    if CHECK_TORCH.is_available and torch.cuda.is_available():
+        device_property = torch.cuda.get_device_properties(0)
+        gpu_count = torch.cuda.device_count()
+        gpu_type = str(device_property.name)
+        gpu_memory_per_device_mb = int(device_property.total_memory) * 1000000 / 1024**2
 
     return {
         "gpu_count": gpu_count,
@@ -132,7 +131,7 @@ def _get_cpu_info():
         import cpuinfo  # type: ignore
 
         info = cpuinfo.get_cpu_info()
-    except Exception:
+    except (ImportError, OSError, RuntimeError):
         info = {}
     return {
         "count": info.get("count", -1),
@@ -153,7 +152,7 @@ def _get_os_info():
         import psutil  # type: ignore
 
         memory = psutil.virtual_memory().total // (1024**2)
-    except Exception:
+    except (ImportError, OSError, RuntimeError):
         memory = -1
 
     return {
@@ -245,11 +244,10 @@ class _PostHogCapture:
             # Silence posthog's logging
             posthog_logger.disabled = True
 
-        except Exception:
+        except Exception:  # noqa: BLE001 - telemetry must never break the server
             logger.debug("Failed to startup posthog")
 
     @property
-    @cache
     def anonymous_user_id(self):
         return get_system_anonymous_name()
 
@@ -262,7 +260,7 @@ class _PostHogCapture:
                 event=event.name(),
                 properties=event.render(),
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - telemetry must never break the server
             logger.debug(f"Failed to send telemetry event {event}: {e}")
 
 

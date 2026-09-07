@@ -9,7 +9,7 @@ import asyncio
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Union
+from typing import Any
 
 from infinity_emb._optional_imports import CHECK_DISKCACHE
 from infinity_emb.env import MANAGER
@@ -48,7 +48,7 @@ class Cache:
             self._threadpool.submit(self._consume_queue)
 
     @staticmethod
-    def _pre_hash(key: Union[str, Any]) -> str:
+    def _pre_hash(key: str | Any) -> str:
         """create a hashable item out of key.__str__"""
         return str(key)
 
@@ -62,7 +62,7 @@ class Cache:
                 if item is not None:
                     k, v = item
                     self._cache.add(key=self._pre_hash(k), value=v, expire=86400)
-            except Exception as ex:
+            except Exception as ex:  # noqa: BLE001 - the writer thread outlives any failed write
                 # a best-effort cache must never take down its own writer thread.
                 logger.warning(f"failed to write to the vector disk cache: {ex}")
             finally:
@@ -72,7 +72,7 @@ class Cache:
         # Future that is never retrieved.
         self._threadpool.shutdown(wait=False)
 
-    def _get(self, sentence: str) -> Union[None, EmbeddingReturnType, list[float]]:
+    def _get(self, sentence: str) -> None | EmbeddingReturnType | list[float]:
         """sets the item.complete() and sets embedding, if in cache."""
         return self._cache.get(key=self._pre_hash(sentence))
 

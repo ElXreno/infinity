@@ -7,9 +7,10 @@ import asyncio
 import queue
 import threading
 import time
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from typing import Any, Optional, Sequence, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Union
 
 import numpy as np
 
@@ -24,9 +25,9 @@ from infinity_emb.primitives import (
     EmbeddingReturnType,
     EmbeddingSingle,
     ImageClassType,
+    MatryoshkaDimError,
     ModelCapabilites,
     ModelNotDeployedError,
-    MatryoshkaDimError,
     OverloadStatus,
     PredictSingle,
     PrioritizedQueueItem,
@@ -35,7 +36,6 @@ from infinity_emb.primitives import (
     ReRankSingle,
     get_inner_item,
 )
-
 from infinity_emb.transformer.audio.utils import resolve_audios
 from infinity_emb.transformer.utils import get_lengths_with_tokenize
 from infinity_emb.transformer.vision.utils import resolve_images
@@ -94,7 +94,7 @@ class ThreadPoolExecutorReadOnly:
 
 
 def matryososka_slice(
-    embeddings: list[np.ndarray], matryoshka_dim: Optional[int]
+    embeddings: list[np.ndarray], matryoshka_dim: int | None
 ) -> list[np.ndarray]:
     if matryoshka_dim:
         if 1 > matryoshka_dim or matryoshka_dim > len(embeddings[0]):
@@ -149,7 +149,7 @@ class BatchHandler:
         self._healthy = True
         self._failure_lock = threading.Lock()
         self._inflight: dict[asyncio.Future, float] = {}
-        self._watchdog_task: Optional[asyncio.Task] = None
+        self._watchdog_task: asyncio.Task | None = None
 
         self.max_batch_size = max_batch_size
         self._verbose = verbose
@@ -191,7 +191,7 @@ class BatchHandler:
             )
 
     async def embed(
-        self, sentences: list[str], matryoshka_dim: Optional[int] = None
+        self, sentences: list[str], matryoshka_dim: int | None = None
     ) -> tuple[list["EmbeddingReturnType"], int]:
         """Schedule a sentence to be embedded. Awaits until embedded.
 
@@ -220,10 +220,10 @@ class BatchHandler:
         query: str,
         docs: list[str],
         raw_scores: bool = False,
-        top_n: Optional[int] = None,
-        max_query_tokens: Optional[int] = None,
-        max_tokens_per_doc: Optional[int] = None,
-        max_pair_tokens: Optional[int] = None,
+        top_n: int | None = None,
+        max_query_tokens: int | None = None,
+        max_tokens_per_doc: int | None = None,
+        max_pair_tokens: int | None = None,
     ) -> tuple[list[RerankReturnType], int]:
         """Schedule a query to be reranked with documents. Awaits until reranked.
 
@@ -309,7 +309,7 @@ class BatchHandler:
         self,
         *,
         images: list[Union[str, "ImageClassType", bytes]],
-        matryoshka_dim: Optional[int] = None,
+        matryoshka_dim: int | None = None,
     ) -> tuple[list["EmbeddingReturnType"], int]:
         """Schedule a images and sentences to be embedded. Awaits until embedded.
 
@@ -336,7 +336,7 @@ class BatchHandler:
         return matryososka_slice(embeddings, matryoshka_dim), usage
 
     async def audio_embed(
-        self, *, audios: list[Union[str, bytes]], matryoshka_dim: Optional[int] = None
+        self, *, audios: list[str | bytes], matryoshka_dim: int | None = None
     ) -> tuple[list["EmbeddingReturnType"], int]:
         """Schedule audios and sentences to be embedded. Awaits until embedded.
 
@@ -549,13 +549,13 @@ class BatchHandler:
                     except queue.Empty:
                         # in case of timeout start again
                         continue
-                    except Exception as e:
+                    except Exception:
                         # exception handing without loop forever.
-                        time.sleep(1)
+                        await asyncio.sleep(1)
                         schedule_errors += 1
                         if schedule_errors > 10:
                             logger.error("too many schedule errors")
-                            raise e
+                            raise
                         continue
                 results, batch = post_batch
                 if len(results) != len(batch):

@@ -4,7 +4,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 from huggingface_hub import HfApi, get_token, snapshot_download  # type: ignore
@@ -17,7 +17,7 @@ from infinity_emb.primitives import Device
 if CHECK_ONNXRUNTIME.is_available:
     try:
         import onnxruntime as ort  # type: ignore
-    except (ImportError, RuntimeError, Exception) as ex:
+    except (ImportError, OSError, RuntimeError) as ex:
         CHECK_ONNXRUNTIME.mark_dirty(ex)
 
 if CHECK_TRANSFORMERS.is_available:
@@ -126,10 +126,10 @@ class OnnxModel:
 
     def __init__(
         self,
-        model_path: Union[str, Path],
+        model_path: str | Path,
         config: Any,
         execution_provider: str,
-        provider_options: Optional[dict] = None,
+        provider_options: dict | None = None,
     ):
         CHECK_ONNXRUNTIME.mark_required()
         self.model_path = Path(model_path)
@@ -156,7 +156,7 @@ class OnnxModel:
 
 
 def symlink_free_model_dir(
-    model_name_or_path: str, file_name: str, revision: Optional[str] = None
+    model_name_or_path: str, file_name: str, revision: str | None = None
 ) -> str:
     """onnxruntime >= 1.23 rejects external data whose canonical path leaves the model
     directory (tensorprotoutils.cc, ValidateExternalDataPath). The huggingface cache stores
@@ -240,13 +240,13 @@ def optimize_graph(
 
 
 def load_onnx_model(
-    model_name_or_path: Union[str, Path],
+    model_name_or_path: str | Path,
     execution_provider: str,
     file_name: str,
     optimize_model: bool = False,
-    revision: Optional[str] = None,
+    revision: str | None = None,
     trust_remote_code: bool = True,
-    provider_options: Optional[dict] = None,
+    provider_options: dict | None = None,
 ) -> OnnxModel:
     """
     Downloads, optionally optimizes and loads an ONNX model for the execution provider.
@@ -282,7 +282,7 @@ def load_onnx_model(
                 logger.info(f"Optimizing {model_path} for {execution_provider}")
                 optimize_graph(model_path, optimized, config, execution_provider)
             return OnnxModel(optimized, config, execution_provider, provider_options)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - fall back to the unoptimized graph on anything
             logger.warning(
                 f"The optimized model {optimized} could not be used: {e}. "
                 "Going to use the unoptimized model."
@@ -311,8 +311,8 @@ def optimized_model_path(repo_id: str, execution_provider: str, model_path: Path
 
 def _list_all_repo_files(
     model_name_or_path: str,
-    revision: Union[str, None] = None,
-    use_auth_token: Union[bool, str] = True,
+    revision: str | None = None,
+    use_auth_token: bool | str = True,
 ):
     if not Path(model_name_or_path).exists():
         if isinstance(use_auth_token, bool):
@@ -332,8 +332,8 @@ def _list_all_repo_files(
 def get_onnx_files(
     *,
     model_name_or_path: str,
-    revision: Union[str, None] = None,
-    use_auth_token: Union[bool, str] = True,
+    revision: str | None = None,
+    use_auth_token: bool | str = True,
     prefer_quantized=False,
 ) -> Path:
     """gets the onnx files from the repo"""

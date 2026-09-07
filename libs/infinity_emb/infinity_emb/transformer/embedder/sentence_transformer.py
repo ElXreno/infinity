@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -17,17 +17,18 @@ from infinity_emb.log_handler import logger
 from infinity_emb.primitives import Device
 from infinity_emb.transformer.abstract import BaseEmbedder
 from infinity_emb.transformer.acceleration import (
-    to_bettertransformer,
     check_if_bettertransformer_possible,
+    to_bettertransformer,
 )
+from infinity_emb.transformer.compat import replace_underlying_model
 from infinity_emb.transformer.quantization.interface import (
     quant_embedding_decorator,
     quant_interface,
 )
-from infinity_emb.transformer.compat import replace_underlying_model
 
 if TYPE_CHECKING:
     from torch import Tensor
+
     from infinity_emb.primitives import EmbeddingReturnType
 
 
@@ -48,16 +49,17 @@ if CHECK_TORCH.is_available:
     try:
         torch._inductor.config.triton.unique_kernel_names = True
         torch._inductor.config.fx_graph_cache = True
-    except Exception:
-        pass
+    except AttributeError as ex:
+        # private torch config, the path moves between releases
+        logger.debug(f"could not set the torch inductor options: {ex}")
 
 
 def pad_features_to_multiple_of(
-    features: dict[str, "Tensor"],
+    features: dict[str, Tensor],
     multiple: int,
     tokenizer,
-    max_length: Optional[int] = None,
-) -> dict[str, "Tensor"]:
+    max_length: int | None = None,
+) -> dict[str, Tensor]:
     """Extends the sequence axis of already padded tokenizer output up to a multiple.
 
     `sentence_transformers.tokenize` does not forward `pad_to_multiple_of`, so the
@@ -148,7 +150,7 @@ class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
             logger.info("using torch.compile(dynamic=True)")
             replace_underlying_model(fm, torch.compile(fm.auto_model, dynamic=True))
 
-    def encode_pre(self, sentences) -> dict[str, "Tensor"]:
+    def encode_pre(self, sentences) -> dict[str, Tensor]:
         features = self.tokenize(sentences)
         if self.engine_args.pad_to_multiple_of:
             features = pad_features_to_multiple_of(
@@ -159,18 +161,18 @@ class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
             )
         return features
 
-    def encode_core(self, features: dict[str, "Tensor"]) -> "Tensor":
+    def encode_core(self, features: dict[str, Tensor]) -> Tensor:
         """
         Computes sentence embeddings
         """
 
         with torch.no_grad():
             features = util.batch_to_device(features, self.device)  # type: ignore
-            out: dict[str, "Tensor"] = self.forward(features)
+            out: dict[str, Tensor] = self.forward(features)
             if not self.mode_colbert:
                 out_features = out["sentence_embedding"].detach().cpu()
             else:
-                out_features = {  # type: ignore # noqa
+                out_features = {  # type: ignore
                     "token_embeddings": out["token_embeddings"].detach().cpu(),
                     "attention_mask": out["attention_mask"].detach().cpu(),
                 }
@@ -180,18 +182,18 @@ class SentenceTransformerPatched(SentenceTransformer, BaseEmbedder):
     @quant_embedding_decorator()
     def encode_post(
         self,
-        out_features: "Tensor",
-    ) -> "EmbeddingReturnType":
+        out_features: Tensor,
+    ) -> EmbeddingReturnType:
         with torch.inference_mode():
             if not self.mode_colbert:
-                embeddings: "Tensor" = out_features.to(torch.float32)
+                embeddings: Tensor = out_features.to(torch.float32)
                 if self.normalize_embeddings:
                     embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
                 embeddings_np: np.ndarray = embeddings.numpy()
             else:
                 # remove the attention mask for two inputs with 5 and 3 tokens that's [[1,1,1,1,1],[1,1,1,0,0]]
                 # and convert to list of numpy arrays
-                embeddings_np = [  # type: ignore # noqa
+                embeddings_np = [  # type: ignore
                     z[m].numpy()
                     for z, m in zip(
                         out_features["token_embeddings"].to(torch.float32),  # type: ignore

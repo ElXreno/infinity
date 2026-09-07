@@ -1,6 +1,5 @@
 import asyncio
 import io
-from typing import Union
 
 from infinity_emb._optional_imports import CHECK_AIOHTTP, CHECK_SOUNDFILE
 from infinity_emb.primitives import (
@@ -16,22 +15,21 @@ if CHECK_SOUNDFILE.is_available:
 
 
 async def resolve_audio(
-    audio: Union[str, bytes],
+    audio: str | bytes,
     allowed_sampling_rate: int,
     session: "aiohttp.ClientSession",
 ) -> AudioSingle:
     if isinstance(audio, bytes):
         try:
             audio_bytes = io.BytesIO(audio)
-        except Exception as e:
+        except (TypeError, ValueError) as e:
             raise AudioCorruption(f"Error opening audio from bytes: {e}")
     else:
         try:
             downloaded = await (await session.get(audio)).read()
-            #
             audio_bytes = io.BytesIO(downloaded)
-        except Exception as e:
-            raise AudioCorruption(f"Error downloading audio from {audio}. \nError msg: {str(e)}")
+        except (aiohttp.ClientError, TimeoutError, OSError, ValueError) as e:
+            raise AudioCorruption(f"Error downloading audio from {audio}. \nError msg: {e!s}")
 
     try:
         data, rate = sf.read(audio_bytes)
@@ -40,12 +38,12 @@ async def resolve_audio(
                 f"Audio sample rate is not {allowed_sampling_rate}Hz, it is {rate}Hz."
             )
         return AudioSingle(audio=data, sampling_rate=rate)
-    except Exception as e:
-        raise AudioCorruption(f"Error opening audio: {e}.\nError msg: {str(e)}")
+    except (AudioCorruption, sf.SoundFileError, OSError, ValueError) as e:
+        raise AudioCorruption(f"Error opening audio: {e}.\nError msg: {e!s}")
 
 
 async def resolve_audios(
-    audio_urls: list[Union[str, bytes]], allowed_sampling_rate: int
+    audio_urls: list[str | bytes], allowed_sampling_rate: int
 ) -> list[AudioSingle]:
     """Resolve audios from URLs."""
     CHECK_AIOHTTP.mark_required()

@@ -1,37 +1,31 @@
 import mimetypes
 import re
-import sys
 import textwrap
 from base64 import b64decode as decode64
 from base64 import b64encode as encode64
+from collections.abc import MutableMapping
 from dataclasses import dataclass
-from typing import Any, MutableMapping, Optional, TypeVar, Union
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
-
+from typing import Any, Self, TypeVar
 from urllib.parse import quote, unquote
 
 T = TypeVar("T")
 
 MIMETYPE_REGEX = r"[\w]+\/[\w\-\+\.]+"
 MIMETYPE_REGEX_AUDIO_IMAGE = r"(audio|image)\/[\w\-\+\.]+"
-_MIMETYPE_RE = re.compile("^{}$".format(MIMETYPE_REGEX_AUDIO_IMAGE))
+_MIMETYPE_RE = re.compile(f"^{MIMETYPE_REGEX_AUDIO_IMAGE}$")
 
 CHARSET_REGEX = r"[\w\-\+\.]+"
-_CHARSET_RE = re.compile("^{}$".format(CHARSET_REGEX))
+_CHARSET_RE = re.compile(f"^{CHARSET_REGEX}$")
 
 DATA_URI_REGEX = (
     r"data:"
-    + r"(?P<mimetype>{})?".format(MIMETYPE_REGEX)
+    + rf"(?P<mimetype>{MIMETYPE_REGEX})?"
     + r"(?:\;name\=(?P<name>[\w\.\-%!*'~\(\)]+))?"
-    + r"(?:\;charset\=(?P<charset>{}))?".format(CHARSET_REGEX)
+    + rf"(?:\;charset\=(?P<charset>{CHARSET_REGEX}))?"
     + r"(?P<base64>\;base64)?"
     + r",(?P<data>.*)"
 )
-_DATA_URI_RE = re.compile(r"^{}$".format(DATA_URI_REGEX), re.DOTALL)
+_DATA_URI_RE = re.compile(rf"^{DATA_URI_REGEX}$", re.DOTALL)
 
 
 class InvalidMimeType(ValueError):
@@ -48,29 +42,29 @@ class InvalidDataURI(ValueError):
 
 @dataclass
 class DataURIHolder:
-    mimetype: Optional[str]
-    charset: Optional[str]
+    mimetype: str | None
+    charset: str | None
     base64: bool
-    data: Union[str, bytes]
+    data: str | bytes
 
 
 class DataURI(str):
     @classmethod
     def make(
         cls,
-        mimetype: Optional[str],
-        charset: Optional[str],
-        base64: Optional[bool],
-        data: Union[str, bytes],
+        mimetype: str | None,
+        charset: str | None,
+        base64: bool | None,
+        data: str | bytes,
     ) -> Self:
         parts = ["data:"]
         if mimetype is not None:
             if not _MIMETYPE_RE.match(mimetype):
-                raise InvalidMimeType("Invalid mimetype: %r" % mimetype)
+                raise InvalidMimeType(f"Invalid mimetype: {mimetype!r}")
             parts.append(mimetype)
         if charset is not None:
             if not _CHARSET_RE.match(charset):
-                raise InvalidCharset("Invalid charset: %r" % charset)
+                raise InvalidCharset(f"Invalid charset: {charset!r}")
             parts.extend([";charset=", charset])
         if base64:
             parts.append(";base64")
@@ -89,9 +83,9 @@ class DataURI(str):
     def from_file(
         cls,
         filename: str,
-        charset: Optional[str] = None,
-        base64: Optional[bool] = True,
-        mimetype: Optional[str] = None,
+        charset: str | None = None,
+        base64: bool | None = True,
+        mimetype: str | None = None,
     ) -> Self:
         if mimetype is None:
             mimetype, _ = mimetypes.guess_type(filename, strict=False)
@@ -101,32 +95,32 @@ class DataURI(str):
         return cls.make(mimetype, charset, base64, data)
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:
-        uri = super(DataURI, cls).__new__(cls, *args, **kwargs)
-        uri._parse  # Trigger any ValueErrors on instantiation.
+        uri = super().__new__(cls, *args, **kwargs)
+        _ = uri._parse  # Trigger any ValueErrors on instantiation.
         return uri
 
     def __repr__(self) -> str:
         truncated = str(self)
         if len(truncated) > 80:
             truncated = truncated[:79] + "…"
-        return "DataURI(%s)" % (truncated,)
+        return f"DataURI({truncated})"
 
     def wrap(self, width: int = 76) -> str:
         return "\n".join(textwrap.wrap(self, width, break_on_hyphens=False))
 
     @property
-    def mimetype(self) -> Optional[str]:
+    def mimetype(self) -> str | None:
         return self._parse[0]
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         name = self._parse[1]
         if name is not None:
             return unquote(name)
         return name
 
     @property
-    def charset(self) -> Optional[str]:
+    def charset(self) -> str | None:
         return self._parse[2]
 
     @property
@@ -154,18 +148,15 @@ class DataURI(str):
 
     @property
     def is_valid(self) -> bool:
-        match = _DATA_URI_RE.match(self)
-        if not match:
-            return False
-        return True
+        return _DATA_URI_RE.match(self) is not None
 
     @property
     def _parse(
         self,
-    ) -> tuple[Optional[str], Optional[str], Optional[str], bool, bytes]:
+    ) -> tuple[str | None, str | None, str | None, bool, bytes]:
         match = _DATA_URI_RE.match(self)
         if match is None:
-            raise InvalidDataURI("Not a valid data URI: %r" % self)
+            raise InvalidDataURI(f"Not a valid data URI: {self!r}")
         mimetype = match.group("mimetype") or None
         name = match.group("name") or None
         charset = match.group("charset") or None
@@ -198,7 +189,7 @@ class DataURI(str):
     def validate(
         cls,
         value: str,
-        values: Optional[MutableMapping[str, Any]] = None,
+        values: MutableMapping[str, Any] | None = None,
         config: Any = None,
         field: Any = None,
         **kwargs: Any,
@@ -217,8 +208,8 @@ class DataURI(str):
         json_schema.update(
             pattern=DATA_URI_REGEX,
             examples=[
-                "data:text/plain;charset=utf-8;base64,"
-                "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wZWQgb3ZlciB0aGUgbGF6eSBkb2cu"
+                ("data:text/plain;charset=utf-8;base64,"
+                "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wZWQgb3ZlciB0aGUgbGF6eSBkb2cu")
             ],
         )
         return json_schema

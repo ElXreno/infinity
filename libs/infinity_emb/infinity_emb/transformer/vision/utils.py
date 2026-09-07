@@ -30,14 +30,14 @@ async def resolve_from_img_url(img_url: str, session: "aiohttp.ClientSession") -
     try:
         # requests.get(img_url, stream=True).raw
         downloaded_img = await (await session.get(img_url)).read()
-    except Exception as e:
+    except (aiohttp.ClientError, TimeoutError, OSError, ValueError) as e:
         raise ImageCorruption(f"error opening an image in your request image from url: {e}")
 
     try:
         img = Image.open(io.BytesIO(downloaded_img))
         assert_image_has_valid_size(img)
         return ImageSingle(image=img)
-    except Exception as e:
+    except (ImageCorruption, OSError, ValueError) as e:
         raise ImageCorruption(
             f"error opening the payload from an image in your request from url: {e}"
         )
@@ -57,7 +57,7 @@ def resolve_from_img_bytes(bytes_img: bytes) -> ImageSingle:
         img = Image.open(io.BytesIO(bytes_img))
         assert_image_has_valid_size(img)
         return ImageSingle(image=img)
-    except Exception as e:
+    except (ImageCorruption, OSError, ValueError) as e:
         raise ImageCorruption(f"error decoding data URI: {e}")
 
 
@@ -72,7 +72,7 @@ async def resolve_image(
     elif isinstance(img, str):
         return await resolve_from_img_url(img, session=session)
     else:
-        raise ValueError(f"Invalid image type: {img} is neither str nor ImageClassType object")
+        raise TypeError(f"Invalid image type: {img} is neither str nor ImageClassType object")
 
 
 async def resolve_images(
