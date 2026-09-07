@@ -25,10 +25,10 @@
       "allowedVersions": "<1.25"
     },
     {
-      "description": "onnxruntime-gpu is pinned against the tensorrt build, most combinations are broken",
+      "description": "onnxruntime-gpu and tensorrt have to be updated as a pair, most combinations of the two are incompatible",
       "matchManagers": ["poetry"],
-      "matchPackageNames": ["onnxruntime-gpu"],
-      "enabled": false
+      "matchPackageNames": ["onnxruntime-gpu", "tensorrt"],
+      "groupName": "onnxruntime-gpu and tensorrt"
     },
     {
       "matchManagers": ["poetry"],
