@@ -6,11 +6,11 @@ from __future__ import annotations
 
 import base64
 import time
-from typing import TYPE_CHECKING, Annotated, Any, Iterable, Literal, Optional, Union
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 from uuid import uuid4
 
 import numpy as np
-
 
 from infinity_emb._optional_imports import CHECK_PYDANTIC
 from infinity_emb.primitives import (
@@ -18,24 +18,27 @@ from infinity_emb.primitives import (
     Modality,
 )
 
-CHECK_PYDANTIC.mark_required()
-# pydantic 2.x is strictly needed starting v0.0.70
-from pydantic import (  # noqa
-    BaseModel,
-    Discriminator,
-    Field,
-    RootModel,
-    Tag,
-    conlist,
-)
+try:
+    # pydantic 2.x is strictly needed starting v0.0.70
+    from pydantic import (
+        BaseModel,
+        Discriminator,
+        Field,
+        RootModel,
+        Tag,
+        conlist,
+    )
 
-from .data_uri import DataURI  # noqa
-from .pydantic_v2 import (  # noqa
-    INPUT_STRING,
-    ITEMS_LIMIT,
-    ITEMS_LIMIT_SMALL,
-    HttpUrl,
-)
+    from .data_uri import DataURI
+    from .pydantic_v2 import (
+        INPUT_STRING,
+        ITEMS_LIMIT,
+        ITEMS_LIMIT_SMALL,
+        HttpUrl,
+    )
+except ImportError:
+    CHECK_PYDANTIC.mark_required()
+    raise
 
 if TYPE_CHECKING:
     from infinity_emb.args import EngineArgs
@@ -45,7 +48,7 @@ if TYPE_CHECKING:
         RerankReturnType,
     )
 
-DataURIorURL = Union[Annotated[DataURI, str], HttpUrl]
+DataURIorURL = Annotated[DataURI, str] | HttpUrl
 
 
 class _Usage(BaseModel):
@@ -56,33 +59,23 @@ class _Usage(BaseModel):
 class _OpenAIEmbeddingInput(BaseModel):
     model: str = "default/not-specified"
     encoding_format: EmbeddingEncodingFormat = EmbeddingEncodingFormat.float
-    user: Optional[str] = None
+    user: str | None = None
     dimensions: int = 0
 
 
 class _OpenAIEmbeddingInput_Text(_OpenAIEmbeddingInput):
     """helper"""
 
-    input: Union[  # type: ignore
-        conlist(  # type: ignore
-            Annotated[str, INPUT_STRING],
-            **ITEMS_LIMIT,
-        ),
-        Annotated[str, INPUT_STRING],
-    ]
+    input: conlist(  # type: ignore
+        Annotated[str, INPUT_STRING], **ITEMS_LIMIT
+    ) | Annotated[str, INPUT_STRING]
     modality: Literal[Modality.text] = Modality.text  # type: ignore
 
 
 class _OpenAIEmbeddingInput_URI(_OpenAIEmbeddingInput):
     """helper"""
 
-    input: Union[  # type: ignore
-        conlist(  # type: ignore
-            DataURIorURL,
-            **ITEMS_LIMIT_SMALL,
-        ),
-        DataURIorURL,
-    ]
+    input: conlist(DataURIorURL, **ITEMS_LIMIT_SMALL) | DataURIorURL  # type: ignore
 
 
 class OpenAIEmbeddingInput_Audio(_OpenAIEmbeddingInput_URI):
@@ -108,11 +101,7 @@ def get_modality(obj: dict) -> str:
 
 class MultiModalOpenAIEmbedding(RootModel):
     root: Annotated[
-        Union[
-            Annotated[_OpenAIEmbeddingInput_Text, Tag(Modality.text.value)],
-            Annotated[OpenAIEmbeddingInput_Audio, Tag(Modality.audio.value)],
-            Annotated[OpenAIEmbeddingInput_Image, Tag(Modality.image.value)],
-        ],
+        Annotated[_OpenAIEmbeddingInput_Text, Tag(Modality.text.value)] | Annotated[OpenAIEmbeddingInput_Audio, Tag(Modality.audio.value)] | Annotated[OpenAIEmbeddingInput_Image, Tag(Modality.image.value)],
         Discriminator(get_modality),
     ]
 
@@ -120,27 +109,20 @@ class MultiModalOpenAIEmbedding(RootModel):
 class ImageEmbeddingInput(BaseModel):
     """LEGACY, DO NO LONGER UPDATE"""
 
-    input: Union[  # type: ignore
-        conlist(  # type: ignore
-            DataURIorURL,
-            **ITEMS_LIMIT_SMALL,
-        ),
-        DataURIorURL,
-    ]
+    input: conlist(DataURIorURL, **ITEMS_LIMIT_SMALL) | DataURIorURL  # type: ignore
     model: str = "default/not-specified"
     encoding_format: EmbeddingEncodingFormat = EmbeddingEncodingFormat.float
-    user: Optional[str] = None
+    user: str | None = None
 
 
 class AudioEmbeddingInput(ImageEmbeddingInput):
     """LEGACY, DO NO LONGER UPDATE"""
 
-    pass
 
 
 class _EmbeddingObject(BaseModel):
     object: Literal["embedding"] = "embedding"
-    embedding: Union[list[float], bytes, list[list[float]]]
+    embedding: list[float] | bytes | list[list[float]]
     index: int
 
 
@@ -154,11 +136,11 @@ class OpenAIEmbeddingResult(BaseModel):
 
     @staticmethod
     def to_embeddings_response(
-        embeddings: Union[Iterable["EmbeddingReturnType"], np.ndarray],
-        engine_args: "EngineArgs",
+        embeddings: Iterable[EmbeddingReturnType] | np.ndarray,
+        engine_args: EngineArgs,
         usage: int,
         encoding_format: EmbeddingEncodingFormat = EmbeddingEncodingFormat.float,
-    ) -> dict[str, Union[str, list[dict], dict]]:
+    ) -> dict[str, str | list[dict] | dict]:
         if encoding_format == EmbeddingEncodingFormat.base64:
             if engine_args.embedding_dtype.uses_bitpacking():
                 raise ValueError(
@@ -170,18 +152,18 @@ class OpenAIEmbeddingResult(BaseModel):
             ]  # type: ignore
         else:
             embeddings = [e.tolist() for e in embeddings]
-        return dict(
-            model=engine_args.served_model_name,
-            data=[
-                dict(
-                    object="embedding",
-                    embedding=emb,
-                    index=count,
-                )
+        return {
+            "model": engine_args.served_model_name,
+            "data": [
+                {
+                    "object": "embedding",
+                    "embedding": emb,
+                    "index": count,
+                }
                 for count, emb in enumerate(embeddings)
             ],
-            usage=dict(prompt_tokens=usage, total_tokens=usage),
-        )
+            "usage": {"prompt_tokens": usage, "total_tokens": usage},
+        }
 
 
 class ClassifyInput(BaseModel):
@@ -213,12 +195,12 @@ class ClassifyResult(BaseModel):
         scores_labels: list[ClassifyReturnType],
         model: str,
         usage: int,
-    ) -> dict[str, Union[str, list[ClassifyReturnType], dict]]:
-        return dict(
-            model=model,
-            data=scores_labels,
-            usage=dict(prompt_tokens=usage, total_tokens=usage),
-        )
+    ) -> dict[str, str | list[ClassifyReturnType] | dict]:
+        return {
+            "model": model,
+            "data": scores_labels,
+            "usage": {"prompt_tokens": usage, "total_tokens": usage},
+        }
 
 
 class RerankInput(BaseModel):
@@ -232,8 +214,8 @@ class RerankInput(BaseModel):
     return_documents: bool = False
     raw_scores: bool = False
     model: str = "default/not-specified"
-    top_n: Optional[int] = Field(default=None, gt=0)
-    max_query_tokens: Optional[int] = Field(
+    top_n: int | None = Field(default=None, gt=0)
+    max_query_tokens: int | None = Field(
         default=None,
         gt=0,
         description=(
@@ -242,7 +224,7 @@ class RerankInput(BaseModel):
             "the configured limit. Omit or null to use the server ceiling."
         ),
     )
-    max_tokens_per_doc: Optional[int] = Field(
+    max_tokens_per_doc: int | None = Field(
         default=None,
         gt=0,
         description=(
@@ -251,7 +233,7 @@ class RerankInput(BaseModel):
             "this but not raise it. Omit or null to use the server ceiling."
         ),
     )
-    max_pair_tokens: Optional[int] = Field(
+    max_pair_tokens: int | None = Field(
         default=None,
         gt=0,
         description=(
@@ -265,7 +247,7 @@ class RerankInput(BaseModel):
 class _ReRankObject(BaseModel):
     relevance_score: float
     index: int
-    document: Optional[str] = None
+    document: str | None = None
 
 
 class ReRankResult(BaseModel):
@@ -280,33 +262,33 @@ class ReRankResult(BaseModel):
 
     @staticmethod
     def to_rerank_response(
-        scores: list["RerankReturnType"],
+        scores: list[RerankReturnType],
         model: str,
         usage: int,
         return_documents: bool,
     ) -> dict:
         if not return_documents:
-            return dict(
-                model=model,
-                results=[
-                    dict(relevance_score=entry.relevance_score, index=entry.index)
+            return {
+                "model": model,
+                "results": [
+                    {"relevance_score": entry.relevance_score, "index": entry.index}
                     for entry in scores
                 ],
-                usage=dict(prompt_tokens=usage, total_tokens=usage),
-            )
+                "usage": {"prompt_tokens": usage, "total_tokens": usage},
+            }
         else:
-            return dict(
-                model=model,
-                results=[
-                    dict(
-                        relevance_score=entry.relevance_score,
-                        index=entry.index,
-                        document=entry.document,
-                    )
+            return {
+                "model": model,
+                "results": [
+                    {
+                        "relevance_score": entry.relevance_score,
+                        "index": entry.index,
+                        "document": entry.document,
+                    }
                     for entry in scores
                 ],
-                usage=dict(prompt_tokens=usage, total_tokens=usage),
-            )
+                "usage": {"prompt_tokens": usage, "total_tokens": usage},
+            }
 
 
 class ModelInfo(BaseModel):

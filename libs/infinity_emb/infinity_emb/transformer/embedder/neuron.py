@@ -3,6 +3,7 @@
 
 import copy
 import os
+
 import numpy as np
 
 from infinity_emb._optional_imports import CHECK_OPTIMUM_NEURON, CHECK_TORCH

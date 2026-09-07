@@ -4,7 +4,7 @@
 import random
 from abc import ABC, abstractmethod
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Union
 
 from infinity_emb._optional_imports import CHECK_PIL  # , CHECK_SOUNDFILE
 from infinity_emb.primitives import (
@@ -21,8 +21,8 @@ from infinity_emb.primitives import (
     PredictInner,
     PredictSingle,
     ReRankInner,
-    ReRankSingle,
     RerankLimits,
+    ReRankSingle,
 )
 from infinity_emb.transformer.quantization.interface import quant_embedding_decorator
 
@@ -43,7 +43,7 @@ if CHECK_PIL.is_available:
 
 
 class BaseTransformer(ABC):  # Inherit from ABC(Abstract base class)
-    capabilities: set[ModelCapabilites] = set()
+    capabilities: ClassVar[set[ModelCapabilites]] = set()
     engine_args: "EngineArgs"
 
     @abstractmethod  # Decorator to define an abstract method
@@ -70,7 +70,7 @@ class BaseTransformer(ABC):  # Inherit from ABC(Abstract base class)
 
 
 class BaseEmbedder(BaseTransformer):  # Inherit from ABC(Abstract base class)
-    capabilities = {"embed"}
+    capabilities: ClassVar[set[ModelCapabilites]] = {"embed"}
 
     @property
     def embedding_dtype(self) -> EmbeddingDtype:
@@ -78,7 +78,7 @@ class BaseEmbedder(BaseTransformer):  # Inherit from ABC(Abstract base class)
         return self.engine_args.embedding_dtype
 
     @abstractmethod  # Decorator to define an abstract method
-    def encode_pre(self, sentences: list[Union[str, Any]]) -> INPUT_FEATURE:
+    def encode_pre(self, sentences: list[str | Any]) -> INPUT_FEATURE:
         """takes care of the tokenization and feature preparation"""
 
     @abstractmethod
@@ -95,7 +95,7 @@ class BaseEmbedder(BaseTransformer):  # Inherit from ABC(Abstract base class)
 
 
 class BaseTIMM(BaseEmbedder):  # Inherit from ABC(Abstract base class)
-    capabilities = {"embed", "image_embed"}
+    capabilities: ClassVar[set[ModelCapabilites]] = {"embed", "image_embed"}
 
     @property
     def embedding_dtype(self) -> EmbeddingDtype:
@@ -133,7 +133,7 @@ class BaseTIMM(BaseEmbedder):  # Inherit from ABC(Abstract base class)
 
 
 class BaseAudioEmbedModel(BaseEmbedder):  # Inherit from ABC(Abstract base class)
-    capabilities = {"embed", "audio_embed"}
+    capabilities: ClassVar[set[ModelCapabilites]] = {"embed", "audio_embed"}
 
     @property
     def embedding_dtype(self) -> EmbeddingDtype:
@@ -145,7 +145,7 @@ class BaseAudioEmbedModel(BaseEmbedder):  # Inherit from ABC(Abstract base class
         raise NotImplementedError
 
     @abstractmethod  # Decorator to define an abstract method
-    def encode_pre(self, sentences_or_audios: list[Union[str, AudioInputType]]) -> INPUT_FEATURE:
+    def encode_pre(self, sentences_or_audios: list[str | AudioInputType]) -> INPUT_FEATURE:
         """
         takes a list of sentences, or a list of audios.
         Audios could be raw byte array of the wave file
@@ -158,7 +158,7 @@ class BaseAudioEmbedModel(BaseEmbedder):  # Inherit from ABC(Abstract base class
     def warmup(self, *, batch_size: int = 64, n_tokens=1) -> tuple[float, float, str]:
         sample_text = ["warm " * n_tokens] * max(1, batch_size // 2)
         # sample_audios = [sf.SoundFile()] * max(1, batch_size // 2)  # type: ignore
-        inp: list[Union[AudioInner, EmbeddingInner]] = (
+        inp: list[AudioInner | EmbeddingInner] = (
             [
                 # TODO: warmup for audio
                 # AudioInner(content=AudioSingle(audio=audio), future=None)  # type: ignore
@@ -178,7 +178,7 @@ class BaseAudioEmbedModel(BaseEmbedder):  # Inherit from ABC(Abstract base class
 
 
 class BaseClassifer(BaseTransformer):  # Inherit from ABC(Abstract base class)
-    capabilities = {"classify"}
+    capabilities: ClassVar[set[ModelCapabilites]] = {"classify"}
 
     @abstractmethod  # Decorator to define an abstract method
     def encode_pre(self, sentences: list[str]) -> INPUT_FEATURE:
@@ -198,7 +198,7 @@ class BaseClassifer(BaseTransformer):  # Inherit from ABC(Abstract base class)
 
 
 class BaseCrossEncoder(BaseTransformer):  # Inherit from ABC(Abstract base class)
-    capabilities = {"rerank"}
+    capabilities: ClassVar[set[ModelCapabilites]] = {"rerank"}
 
     @abstractmethod  # Decorator to define an abstract method
     def encode_pre(self, queries_docs: list[tuple[str, str, RerankLimits]]) -> INPUT_FEATURE:
@@ -221,9 +221,9 @@ class BaseCrossEncoder(BaseTransformer):  # Inherit from ABC(Abstract base class
         return run_warmup(self, inp)
 
 
-BaseTypeHint = Union[
-    BaseTransformer, BaseEmbedder, BaseTIMM, BaseAudioEmbedModel, BaseClassifer, BaseCrossEncoder
-]
+BaseTypeHint = (
+    BaseTransformer | BaseEmbedder | BaseTIMM | BaseAudioEmbedModel | BaseClassifer | BaseCrossEncoder
+)
 
 
 def run_warmup(model, inputs) -> tuple[float, float, str]:

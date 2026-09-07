@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 from huggingface_hub.constants import (  # type: ignore[import-untyped]
@@ -105,7 +104,7 @@ class CT2Transformer(Module):
         transformer,
         compute_type="default",
         force=False,
-        vmap: Union[str, None] = None,
+        vmap: str | None = None,
     ):
         CHECK_CTRANSLATE2.mark_required()
         super().__init__()

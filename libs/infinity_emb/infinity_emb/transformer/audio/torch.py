@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any
 
 from infinity_emb._optional_imports import CHECK_TORCH, CHECK_TRANSFORMERS
 from infinity_emb.args import EngineArgs
@@ -61,7 +62,7 @@ class TorchAudioModel(BaseAudioEmbedModel):
     def sampling_rate(self) -> int:
         return self._sampling_rate
 
-    def encode_pre(self, sentences_or_audios: list[Union[str, "AudioInputType"]]):
+    def encode_pre(self, sentences_or_audios: list[str | AudioInputType]):
         text_list: list[str] = []
         audio_list: list[Any] = []
         type_is_audio: list[bool] = []
@@ -87,14 +88,14 @@ class TorchAudioModel(BaseAudioEmbedModel):
 
         return (preprocessed, type_is_audio)
 
-    def _normalize_cpu(self, tensor: Optional["Tensor"]) -> Iterable["Tensor"]:
+    def _normalize_cpu(self, tensor: Tensor | None) -> Iterable[Tensor]:
         if tensor is None:
             return iter([])
         return iter((tensor / tensor.norm(p=2, dim=-1, keepdim=True)).cpu().numpy())
 
     def encode_core(
-        self, features_and_types: tuple[dict[str, "Tensor"], list[bool]]
-    ) -> tuple["Tensor", "Tensor", list[bool]]:
+        self, features_and_types: tuple[dict[str, Tensor], list[bool]]
+    ) -> tuple[Tensor, Tensor, list[bool]]:
         """
         Computes sentence embeddings
         """

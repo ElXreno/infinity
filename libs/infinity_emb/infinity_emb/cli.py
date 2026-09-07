@@ -1,15 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2023-now michaelfeil
 
-import asyncio
 import re
 import sys
-
 
 import infinity_emb
 from infinity_emb._optional_imports import CHECK_TYPER, CHECK_UVICORN
 from infinity_emb.args import EngineArgs
 from infinity_emb.env import MANAGER
+from infinity_emb.infinity_server import create_server
 from infinity_emb.log_handler import UVICORN_LOG_LEVELS, logger
 from infinity_emb.primitives import (
     Device,
@@ -19,8 +18,6 @@ from infinity_emb.primitives import (
     InferenceEngine,
     PoolingMethod,
 )
-from infinity_emb.infinity_server import create_server
-
 
 # helper functions for the CLI
 
@@ -77,12 +74,12 @@ def typer_option_resolve(*args):
 
 def _construct(name: str):
     """constructs the default entry and type hint for the variable name"""
-    return dict(
+    return {
         # gets the default value from the ENV Manager
-        default=getattr(MANAGER, name),
+        "default": getattr(MANAGER, name),
         # envvar is a dummy that is there for documentation purposes.
-        envvar=f"`{MANAGER.to_name(name)}`",
-    )
+        "envvar": f"`{MANAGER.to_name(name)}`",
+    }
 
 
 # CLI
@@ -95,15 +92,6 @@ if CHECK_TYPER.is_available:
     # patch the asyncio scheduler with uvloop
     # which has theoretical speed-ups vs asyncio
     loopname = "auto"
-    if sys.version_info < (3, 12):
-        try:
-            import uvloop
-
-            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-            loopname = "uvloop"
-        except ImportError:
-            # Windows does not support uvloop
-            pass
 
     tp = typer.Typer()
 
@@ -116,7 +104,7 @@ if CHECK_TYPER.is_available:
         revision: str = MANAGER.revision[0],
         trust_remote_code: bool = MANAGER.trust_remote_code[0],
         redirect_slash: str = MANAGER.redirect_slash,
-        engine: "InferenceEngine" = MANAGER.engine[0],  # type: ignore # noqa
+        engine: "InferenceEngine" = MANAGER.engine[0],  # type: ignore
         model_warmup: bool = MANAGER.model_warmup[0],
         vector_disk_cache: bool = MANAGER.vector_disk_cache[0],
         device: "Device" = MANAGER.device[0],  # type: ignore
@@ -400,7 +388,7 @@ if CHECK_TYPER.is_available:
         app = create_server(
             engine_args_list=engine_args,
             url_prefix=url_prefix,
-            doc_extra=dict(host=host, port=port),
+            doc_extra={"host": host, "port": port},
             redirect_slash=redirect_slash,
             preload_only=preload_only,
             permissive_cors=permissive_cors,
@@ -420,23 +408,22 @@ if CHECK_TYPER.is_available:
 
 def cli():
     CHECK_TYPER.mark_required()
-    if len(sys.argv) == 1 or sys.argv[1] not in [
+    if (len(sys.argv) == 1 or sys.argv[1] not in [
         "v1",
         "v2",
         "help",
         "--help",
         "--show-completion",
         "--install-completion",
-    ]:
-        if len(sys.argv) == 1 or sys.argv[1] not in ["v1", "v2", "help", "--help"]:
-            logger.error(
-                "Error: No command given. Please use infinity with the `v2` command. "
-                f"This is deprecated since 0.0.32. You are on {infinity_emb.__version__}. "
-                "Usage: `infinity_emb v2 --model-id BAAI/bge-large-en-v1.5. "
-                "defaulting to `v2` since 0.0.75. Please pin your revision for future upgrades."
-            )
+    ]) and (len(sys.argv) == 1 or sys.argv[1] not in ["v1", "v2", "help", "--help"]):
+        logger.error(
+            "Error: No command given. Please use infinity with the `v2` command. "
+            f"This is deprecated since 0.0.32. You are on {infinity_emb.__version__}. "
+            "Usage: `infinity_emb v2 --model-id BAAI/bge-large-en-v1.5. "
+            "defaulting to `v2` since 0.0.75. Please pin your revision for future upgrades."
+        )
 
-            sys.argv.insert(1, "v2")
+        sys.argv.insert(1, "v2")
     tp()
 
 

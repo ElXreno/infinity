@@ -11,12 +11,12 @@ from infinity_emb.args import EngineArgs
 from infinity_emb.log_handler import logger
 from infinity_emb.primitives import Device, RerankLimits
 from infinity_emb.transformer.abstract import BaseCrossEncoder
+from infinity_emb.transformer.compat import replace_underlying_model
 from infinity_emb.transformer.crossencoder import truncate_texts_to_tokens
+from infinity_emb.transformer.padding import padding_bucket
 from infinity_emb.transformer.quantization.interface import (
     quant_interface,
 )
-from infinity_emb.transformer.padding import padding_bucket
-from infinity_emb.transformer.compat import replace_underlying_model
 
 if CHECK_TORCH.is_available and CHECK_SENTENCE_TRANSFORMERS.is_available:
     import torch
@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 
 
 from infinity_emb.transformer.acceleration import (
-    to_bettertransformer,
     check_if_bettertransformer_possible,
+    to_bettertransformer,
 )
 
 __all__ = [
@@ -93,7 +93,7 @@ class CrossEncoderPatched(CrossEncoder, BaseCrossEncoder):
             logger.info("using torch.compile(dynamic=True)")
             self._replace_model(torch.compile(self._require_model(), dynamic=True))
 
-    def _require_model(self) -> "PreTrainedModel":
+    def _require_model(self) -> PreTrainedModel:
         model = self.model
         assert model is not None
         return model
@@ -145,7 +145,7 @@ class CrossEncoderPatched(CrossEncoder, BaseCrossEncoder):
             return_tensors="pt",
         )
 
-    def encode_core(self, features: dict[str, "Tensor"]):
+    def encode_core(self, features: dict[str, Tensor]):
         """
         Computes sentence embeddings
         """

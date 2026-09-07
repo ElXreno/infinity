@@ -20,14 +20,10 @@ from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     NamedTuple,
-    Optional,
-    Type,
     TypedDict,
     TypeVar,
-    Union,
 )
 
 import numpy as np
@@ -47,7 +43,7 @@ ImageClassType = EmptyImageClassType
 
 dataclass_args = {"kw_only": True} if sys.version_info >= (3, 10) else {}
 
-EmbeddingReturnType = npt.NDArray[Union[np.float32, np.float32]]
+EmbeddingReturnType = npt.NDArray[np.float32]
 AudioInputType = npt.NDArray[np.float32]
 
 
@@ -65,7 +61,7 @@ class ClassifyReturnType(TypedDict):
 
 ReRankReturnType = float
 
-UnionReturnType = Union[EmbeddingReturnType, ReRankReturnType, ClassifyReturnType]
+UnionReturnType = EmbeddingReturnType | ReRankReturnType | ClassifyReturnType
 
 
 class EnumType(str, enum.Enum):
@@ -77,7 +73,7 @@ class EnumType(str, enum.Enum):
 
         Allows for type hinting of the enum names.
         """
-        return enum.Enum(cls.__name__ + "__names", {k: k for k in cls.__members__.keys()})
+        return enum.Enum(cls.__name__ + "__names", {k: k for k in cls.__members__})
 
     @staticmethod
     def default_value() -> str:
@@ -117,7 +113,7 @@ class Device(EnumType):
     def default_value():
         return Device.auto.value
 
-    def resolve(self) -> Optional[str]:
+    def resolve(self) -> str | None:
         """gets the torch device string"""
         if self == Device.auto:
             return None
@@ -136,7 +132,7 @@ class Dtype(EnumType):
     def default_value():
         return Dtype.auto.value
 
-    def resolve(self) -> Optional[str]:
+    def resolve(self) -> str | None:
         """gets the torch dtype string"""
         if self == Dtype.auto:
             return None
@@ -170,7 +166,7 @@ class PoolingMethod(EnumType):
 
 
 class DeviceID(list[int]):
-    def __init__(self, ids: Union[list[int], str]):
+    def __init__(self, ids: list[int] | str):
         if isinstance(ids, str):
             ids = [int(i) for i in ids.split(",") if i]
         self.ids = list(ids)
@@ -185,7 +181,6 @@ class DeviceID(list[int]):
 
 
 class DeviceIDProxy(str):
-    pass
 
     @staticmethod
     def default_value():
@@ -195,9 +190,9 @@ class DeviceIDProxy(str):
 @dataclass(**dataclass_args)
 class LoadingStrategy:
     device_mapping: list[str]
-    loading_dtype: Union[str, Dtype, Any]
-    quantization_dtype: Union[str, Dtype, Any]
-    device_placement: Optional[str] = None
+    loading_dtype: str | Dtype | Any
+    quantization_dtype: str | Dtype | Any
+    device_placement: str | None = None
 
 
 @dataclass(**dataclass_args)
@@ -209,7 +204,7 @@ class AbstractSingle(ABC):
     @abstractmethod
     def to_input(
         self,
-    ) -> Union[str, tuple[str, str], tuple[str, str, "RerankLimits"], "ImageClass", "AudioInputType"]:
+    ) -> str | tuple[str, str] | tuple[str, str, RerankLimits] | ImageClass | AudioInputType:
         pass
 
 
@@ -238,9 +233,9 @@ class RerankLimits(NamedTuple):
     on the model, so it is configured per model at startup.
     """
 
-    max_query_tokens: Optional[int] = None
-    max_tokens_per_doc: Optional[int] = None
-    max_pair_tokens: Optional[int] = None
+    max_query_tokens: int | None = None
+    max_tokens_per_doc: int | None = None
+    max_pair_tokens: int | None = None
 
 
 @dataclass(**dataclass_args)
@@ -250,7 +245,7 @@ class ReRankSingle(AbstractSingle):
     # Effective token budgets for this pair; the query and document are each head-truncated
     # and the joined pair is capped. Already resolved against the model's startup ceilings;
     # an all-None RerankLimits means no truncation.
-    limits: RerankLimits = RerankLimits()
+    limits: RerankLimits = field(default_factory=RerankLimits)
 
     def str_repr(self) -> str:
         # The limits change the tokenised pair, so they must be part of the cache key
@@ -276,13 +271,13 @@ class PredictSingle(EmbeddingSingle):
 
 @dataclass(**dataclass_args)
 class ImageSingle(AbstractSingle):
-    image: "ImageClass"
+    image: ImageClass
 
     def str_repr(self) -> str:
         """creates a dummy representation of the image to count tokens relative to shape"""
         return f"an image is worth a repeated {'token' * self.image.height}"
 
-    def to_input(self) -> "ImageClass":
+    def to_input(self) -> ImageClass:
         return self.image
 
 
@@ -303,7 +298,7 @@ AbstractInnerType = TypeVar("AbstractInnerType")
 
 
 @dataclass(order=True, **dataclass_args)
-class AbstractInner(ABC, Generic[AbstractInnerType]):
+class AbstractInner[AbstractInnerType](ABC):
     content: AbstractSingle
     future: asyncio.Future
 
@@ -319,7 +314,7 @@ class AbstractInner(ABC, Generic[AbstractInnerType]):
 @dataclass(order=True, **dataclass_args)
 class EmbeddingInner(AbstractInner):
     content: EmbeddingSingle
-    embedding: Optional["EmbeddingReturnType"] = None
+    embedding: EmbeddingReturnType | None = None
 
     async def complete(self, result: EmbeddingReturnType) -> None:
         """marks the future for completion.
@@ -343,7 +338,7 @@ class EmbeddingInner(AbstractInner):
 @dataclass(order=True)
 class ReRankInner(AbstractInner):
     content: ReRankSingle
-    score: Optional[float] = field(default=None, compare=False)
+    score: float | None = field(default=None, compare=False)
 
     async def complete(self, result: float) -> None:
         """marks the future for completion.
@@ -367,7 +362,7 @@ class ReRankInner(AbstractInner):
 @dataclass(order=True)
 class PredictInner(AbstractInner):
     content: PredictSingle
-    class_encoding: Optional[ClassifyReturnType] = None
+    class_encoding: ClassifyReturnType | None = None
 
     async def complete(self, result: ClassifyReturnType) -> None:
         """marks the future for completion.
@@ -391,7 +386,7 @@ class PredictInner(AbstractInner):
 @dataclass(order=True, **dataclass_args)
 class ImageInner(AbstractInner):
     content: ImageSingle
-    embedding: Optional["EmbeddingReturnType"] = None
+    embedding: EmbeddingReturnType | None = None
 
     async def complete(self, result: EmbeddingReturnType) -> None:
         """marks the future for completion.
@@ -415,7 +410,7 @@ class ImageInner(AbstractInner):
 @dataclass(order=True, **dataclass_args)
 class AudioInner(AbstractInner):
     content: AudioSingle
-    embedding: Optional["EmbeddingReturnType"] = None
+    embedding: EmbeddingReturnType | None = None
 
     async def complete(self, result: EmbeddingReturnType) -> None:
         """marks the future for completion.
@@ -436,7 +431,7 @@ class AudioInner(AbstractInner):
         return self.embedding
 
 
-QueueItemInner = Union[EmbeddingInner, ReRankInner, PredictInner, ImageInner, AudioInner]
+QueueItemInner = EmbeddingInner | ReRankInner | PredictInner | ImageInner | AudioInner
 
 _type_to_inner_item_map = {
     EmbeddingSingle: EmbeddingInner,
@@ -447,7 +442,7 @@ _type_to_inner_item_map = {
 }
 
 
-def get_inner_item(single_type: Type[AbstractSingle]) -> Type[QueueItemInner]:
+def get_inner_item(single_type: type[AbstractSingle]) -> type[QueueItemInner]:
     if single_type not in _type_to_inner_item_map:
         raise ValueError(f"Unknown type of input_single_item, {single_type}")
 

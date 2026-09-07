@@ -3,7 +3,6 @@
 
 import json
 from pathlib import Path
-from typing import Union
 
 from infinity_emb.args import (
     EngineArgs,
@@ -22,7 +21,7 @@ from infinity_emb.transformer.utils import (
 
 def get_engine_type_from_config(
     engine_args: EngineArgs,
-) -> Union[EmbedderEngine, RerankEngine, PredictEngine, ImageEmbedEngine, AudioEmbedEngine]:
+) -> EmbedderEngine | RerankEngine | PredictEngine | ImageEmbedEngine | AudioEmbedEngine:
     """resolved the class of inference engine path from config.json of the repo."""
     if engine_args.engine in [InferenceEngine.debugengine]:
         return EmbedderEngine.from_inference_engine(engine_args.engine)
@@ -61,7 +60,7 @@ def get_engine_type_from_config(
 
 def select_model(
     engine_args: EngineArgs,
-) -> tuple[list[Union[BaseCrossEncoder, BaseEmbedder]], float, float]:
+) -> tuple[list[BaseCrossEncoder | BaseEmbedder], float, float]:
     """based on engine args, fully instantiates the Engine."""
     logger.info(
         f"model=`{engine_args.model_name_or_path}` selected, "

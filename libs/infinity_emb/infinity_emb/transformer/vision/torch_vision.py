@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any
 
 from infinity_emb._optional_imports import (
     CHECK_COLPALI_ENGINE,
@@ -36,14 +37,14 @@ if CHECK_PIL.is_available:
 class TIMM(BaseTIMM):
     """CrossEncoder with .encode_core() and no microbatching"""
 
-    def __init__(self, *, engine_args: "EngineArgs"):
+    def __init__(self, *, engine_args: EngineArgs):
         CHECK_TORCH.mark_required()
         CHECK_TRANSFORMERS.mark_required()
         model_name = engine_args.model_name_or_path
-        base_config = dict(
-            revision=engine_args.revision,
-            trust_remote_code=engine_args.trust_remote_code,
-        )
+        base_config = {
+            "revision": engine_args.revision,
+            "trust_remote_code": engine_args.trust_remote_code,
+        }
         config = AutoConfig.from_pretrained(model_name, **base_config)
         self.is_colipali = config.architectures[0] in IMAGE_COL_MODELS
         self.mock_image = Image.new("RGB", (128, 128), color="black")
@@ -131,7 +132,7 @@ class TIMM(BaseTIMM):
             self.model.config, getattr(self.processor, "tokenizer", None)
         )
 
-    def encode_pre(self, sentences_or_images: list[Union[str, "ImageClass"]]):
+    def encode_pre(self, sentences_or_images: list[str | ImageClass]):
         # return input_tuples
         text_list: list[str] = []
         image_list: list[Any] = []
@@ -172,7 +173,7 @@ class TIMM(BaseTIMM):
 
         return (preprocessed, type_is_img)
 
-    def _normalize_cpu(self, tensor: Optional["Tensor"], normalize: bool) -> Iterable["Tensor"]:
+    def _normalize_cpu(self, tensor: Tensor | None, normalize: bool) -> Iterable[Tensor]:
         if tensor is None:
             return iter([])
         tensor = tensor.to(torch.float32)
@@ -182,8 +183,8 @@ class TIMM(BaseTIMM):
             return iter(tensor.cpu().numpy())
 
     def encode_core(
-        self, features_and_types: tuple[dict[str, "Tensor"], list[bool]]
-    ) -> tuple["Tensor", "Tensor", list[bool]]:
+        self, features_and_types: tuple[dict[str, Tensor], list[bool]]
+    ) -> tuple[Tensor, Tensor, list[bool]]:
         """
         Computes sentence embeddings
         """
@@ -194,11 +195,11 @@ class TIMM(BaseTIMM):
             if self.is_colipali:
                 text, image = features
                 if text:
-                    text_embeds: "Tensor" = self.model.forward(  # type: ignore
+                    text_embeds: Tensor = self.model.forward(  # type: ignore
                         **text,
                     )
                 if image:
-                    image_embeds: "Tensor" = self.model.forward(  # type: ignore
+                    image_embeds: Tensor = self.model.forward(  # type: ignore
                         **image,
                     )
             else:

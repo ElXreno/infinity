@@ -1,4 +1,5 @@
 from pydantic import AnyUrl, HttpUrl, StringConstraints
+
 from infinity_emb.env import MANAGER
 
 __all__ = [

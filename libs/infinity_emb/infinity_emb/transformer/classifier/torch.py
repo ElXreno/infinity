@@ -3,17 +3,17 @@
 
 from typing import Any
 
-from infinity_emb._optional_imports import CHECK_TRANSFORMERS, CHECK_TORCH
+from infinity_emb._optional_imports import CHECK_TORCH, CHECK_TRANSFORMERS
 from infinity_emb.args import EngineArgs
 from infinity_emb.log_handler import logger
+from infinity_emb.primitives import Device
 from infinity_emb.transformer.abstract import BaseClassifer
 from infinity_emb.transformer.acceleration import (
-    to_bettertransformer,
     check_if_bettertransformer_possible,
+    to_bettertransformer,
 )
 from infinity_emb.transformer.classifier import classification_activation
 from infinity_emb.transformer.quantization.interface import quant_interface
-from infinity_emb.primitives import Device
 
 if CHECK_TRANSFORMERS.is_available:
     from transformers import AutoTokenizer, pipeline  # type: ignore

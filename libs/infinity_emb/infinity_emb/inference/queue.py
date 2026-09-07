@@ -3,7 +3,7 @@
 
 import asyncio
 import threading
-from typing import Optional, Generator
+from collections.abc import Generator
 
 from infinity_emb.inference.caching_layer import Cache
 from infinity_emb.primitives import (
@@ -17,7 +17,6 @@ class CustomFIFOQueue:
     """Class which defines a custom ordering"""
 
     def __init__(self) -> None:
-        """"""
         self._lock_queue_event = threading.Lock()
         self._queue: list[PrioritizedQueueItem] = []
         # event that indicates items in queue.
@@ -50,9 +49,8 @@ class CustomFIFOQueue:
             None: if there is not a single item in self._queue after timeout
             else: list[EmbeddingInner] with len(1<=size)
         """
-        if not self._queue:
-            if not self._sync_event.wait(timeout):
-                return
+        if not self._queue and not self._sync_event.wait(timeout):
+            return
 
         # Determine the number of batches to process
         # n_batches = min(max_n_batches, max(1, len(self._queue) // size))
@@ -77,7 +75,7 @@ class CustomFIFOQueue:
 
 
 class ResultKVStoreFuture:
-    def __init__(self, cache: Optional[Cache] = None) -> None:
+    def __init__(self, cache: Cache | None = None) -> None:
         """holds instance of Cache"""
         self._cache = cache
 

@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2023-now michaelfeil
 
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable
 
 from infinity_emb.primitives import InferenceEngine
 from infinity_emb.transformer.audio.torch import TorchAudioModel
-from infinity_emb.transformer.classifier.torch import SentenceClassifier
 from infinity_emb.transformer.classifier.optimum import OptimumClassifier
+from infinity_emb.transformer.classifier.torch import SentenceClassifier
 from infinity_emb.transformer.crossencoder.optimum import OptimumCrossEncoder
 from infinity_emb.transformer.crossencoder.torch import (
     CrossEncoderPatched as CrossEncoderTorch,
@@ -22,8 +22,8 @@ from infinity_emb.transformer.embedder.sentence_transformer import (
 from infinity_emb.transformer.vision.torch_vision import TIMM
 
 __all__ = [
-    "length_tokenizer",
     "get_lengths_with_tokenize",
+    "length_tokenizer",
 ]
 
 

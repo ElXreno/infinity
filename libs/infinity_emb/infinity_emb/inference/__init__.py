@@ -11,10 +11,10 @@ from infinity_emb.primitives import (
 )
 
 __all__ = [
+    "BatchHandler",
+    "Device",
     "EmbeddingInner",
     "EmbeddingReturnType",
     "PrioritizedQueueItem",
-    "Device",
-    "BatchHandler",
     "select_model",
 ]

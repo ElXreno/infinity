@@ -5,7 +5,7 @@ import subprocess
 import sys
 from functools import cache, wraps
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import requests  # type: ignore
@@ -17,8 +17,9 @@ from infinity_emb.primitives import Device, Dtype, EmbeddingDtype
 from infinity_emb.transformer.quantization.quant import quantize
 
 if TYPE_CHECKING:
-    from infinity_emb.transformer.abstract import BaseEmbedder
     import torch
+
+    from infinity_emb.transformer.abstract import BaseEmbedder
 
 if CHECK_TORCH.is_available:
     import torch
@@ -65,7 +66,7 @@ def dynamic_int8_runs_here() -> bool:
     return True
 
 
-def quant_interface(model: Any, dtype: Union[Dtype] = Dtype.int8, device: Device = Device.cpu):
+def quant_interface(model: Any, dtype: Dtype = Dtype.int8, device: Device = Device.cpu):
     """Quantize a model to a specific dtype and device.
 
     Args:

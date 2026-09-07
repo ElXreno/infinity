@@ -5,19 +5,14 @@ import asyncio
 import threading
 import time
 import weakref
+from collections.abc import Callable, Coroutine, Iterator
 from concurrent.futures import Future
 from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Coroutine,
-    Iterator,
-    Optional,
     TypeVar,
-    Union,
 )
-
 
 from infinity_emb.engine import AsyncEmbeddingEngine, AsyncEngineArray, EngineArgs
 from infinity_emb.log_handler import logger
@@ -172,7 +167,7 @@ class SyncEngineArray(WeakAsyncLifeMixin):
         self.async_run(self.async_engine_array.astop).result()
 
     @add_start_docstrings(AsyncEngineArray.embed.__doc__)
-    def embed(self, *, model: str, sentences: list[str], matryoshka_dim: Optional[int] = None):
+    def embed(self, *, model: str, sentences: list[str], matryoshka_dim: int | None = None):
         """sync interface of AsyncEngineArray"""
         return self.async_run(
             self.async_engine_array.embed,
@@ -189,10 +184,10 @@ class SyncEngineArray(WeakAsyncLifeMixin):
         query: str,
         docs: list[str],
         raw_scores: bool = False,
-        top_n: Optional[int] = None,
-        max_query_tokens: Optional[int] = None,
-        max_tokens_per_doc: Optional[int] = None,
-        max_pair_tokens: Optional[int] = None,
+        top_n: int | None = None,
+        max_query_tokens: int | None = None,
+        max_tokens_per_doc: int | None = None,
+        max_pair_tokens: int | None = None,
     ):
         """sync interface of AsyncEngineArray"""
         return self.async_run(
@@ -219,7 +214,7 @@ class SyncEngineArray(WeakAsyncLifeMixin):
 
     @add_start_docstrings(AsyncEngineArray.image_embed.__doc__)
     def image_embed(
-        self, *, model: str, images: list[Union[str, bytes]], matryoshka_dim: Optional[int] = None
+        self, *, model: str, images: list[str | bytes], matryoshka_dim: int | None = None
     ):
         """sync interface of AsyncEngineArray"""
         return self.async_run(
@@ -231,7 +226,7 @@ class SyncEngineArray(WeakAsyncLifeMixin):
 
     @add_start_docstrings(AsyncEngineArray.audio_embed.__doc__)
     def audio_embed(
-        self, *, model: str, audios: list[Union[str, bytes]], matryoshka_dim: Optional[int] = None
+        self, *, model: str, audios: list[str | bytes], matryoshka_dim: int | None = None
     ):
         """sync interface of AsyncEngineArray"""
         return self.async_run(

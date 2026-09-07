@@ -3,11 +3,9 @@
 
 import json
 import sys
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from itertools import zip_longest
-from typing import Optional
-from copy import deepcopy
-
 
 from infinity_emb._optional_imports import CHECK_PYDANTIC
 from infinity_emb.env import MANAGER
@@ -17,13 +15,13 @@ from infinity_emb.primitives import (
     Dtype,
     EmbeddingDtype,
     InferenceEngine,
-    PoolingMethod,
     LoadingStrategy,
+    PoolingMethod,
 )
 
 if CHECK_PYDANTIC.is_available:
-    from pydantic.dataclasses import dataclass as dataclass_pydantic
     from pydantic import ConfigDict
+    from pydantic.dataclasses import dataclass as dataclass_pydantic
 # if python>=3.10 use kw_only
 dataclass_args = {"kw_only": True} if sys.version_info >= (3, 10) else {}
 
@@ -65,10 +63,10 @@ class EngineArgs:
 
     model_name_or_path: str = MANAGER.model_id[0]
     batch_size: int = MANAGER.batch_size[0]
-    revision: Optional[str] = MANAGER.revision[0]
-    max_query_tokens: Optional[int] = MANAGER.max_query_tokens[0]
-    max_tokens_per_doc: Optional[int] = MANAGER.max_tokens_per_doc[0]
-    max_pair_tokens: Optional[int] = MANAGER.max_pair_tokens[0]
+    revision: str | None = MANAGER.revision[0]
+    max_query_tokens: int | None = MANAGER.max_query_tokens[0]
+    max_tokens_per_doc: int | None = MANAGER.max_tokens_per_doc[0]
+    max_pair_tokens: int | None = MANAGER.max_pair_tokens[0]
     trust_remote_code: bool = MANAGER.trust_remote_code[0]
     engine: InferenceEngine = InferenceEngine[MANAGER.engine[0]]
     model_warmup: bool = MANAGER.model_warmup[0]
@@ -87,7 +85,7 @@ class EngineArgs:
     pad_to_multiple_of: int = MANAGER.pad_to_multiple_of[0]
     onnx_provider_options: str = MANAGER.onnx_provider_options[0]
 
-    _loading_strategy: Optional[LoadingStrategy] = None
+    _loading_strategy: LoadingStrategy | None = None
 
     def __post_init__(self):
         # convert the following strings to enums

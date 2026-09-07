@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 from functools import cached_property
 from pathlib import Path
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from infinity_emb.log_handler import logger
 from infinity_emb.primitives import (
@@ -69,8 +69,7 @@ class __Infinity_EnvManager:
         if value is None:
             self._debug(f"{name}=`{';'.join(default)}`(default)")
             return default
-        if value.endswith(";"):
-            value = value[:-1]
+        value = value.removesuffix(";")
         value_list = value.split(";")
         self._debug(f"{name}=`{';'.join(value_list)}`")
         return value_list
@@ -88,9 +87,9 @@ class __Infinity_EnvManager:
         return [int(v) for v in value]
 
     @staticmethod
-    def _to_optional_int_multiple(value: list[str]) -> list[Optional[int]]:
+    def _to_optional_int_multiple(value: list[str]) -> list[int | None]:
         """Parse a per-model list where an empty token or `none`/`null` disables the limit."""
-        parsed: list[Optional[int]] = []
+        parsed: list[int | None] = []
         for v in value:
             v = v.strip()
             if v == "" or v.lower() in {"none", "null"}:
@@ -213,7 +212,7 @@ class __Infinity_EnvManager:
         elif hf_home:
             cache_dir = Path(hf_home) / ".infinity_cache"
         else:
-            cache_dir = Path(".").resolve() / ".infinity_cache"
+            cache_dir = Path.cwd() / ".infinity_cache"
 
         if not cache_dir.exists():
             cache_dir.mkdir(parents=True, exist_ok=True)
@@ -270,7 +269,7 @@ class __Infinity_EnvManager:
     def log_level(self):
         return self._optional_infinity_var("log_level", default="info")
 
-    def _typed_multiple(self, name: str, cls: type["EnumTypeLike"]) -> list["str"]:
+    def _typed_multiple(self, name: str, cls: type[EnumTypeLike]) -> list[str]:
         result = self._optional_infinity_var_multiple(name, default=[cls.default_value()])
         tuple(cls(v) for v in result)  # check if all values are valid
         return result

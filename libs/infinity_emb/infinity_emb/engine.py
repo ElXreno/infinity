@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from asyncio import Semaphore
-from typing import Iterable, Iterator, Optional, Union
+from collections.abc import Iterable, Iterator
 
 from infinity_emb.args import EngineArgs
 
@@ -22,7 +22,7 @@ from infinity_emb.primitives import (
 )
 
 
-def _clamp_to_ceiling(requested: Optional[int], ceiling: Optional[int]) -> Optional[int]:
+def _clamp_to_ceiling(requested: int | None, ceiling: int | None) -> int | None:
     """Clamp a client-requested rerank token budget to the model's startup ceiling.
 
     The startup ceiling guards backend stability; a client may only lower a limit (to
@@ -45,7 +45,7 @@ class AsyncEmbeddingEngine:
 
     def __init__(
         self,
-        model_name_or_path: Optional[str] = None,
+        model_name_or_path: str | None = None,
         _show_deprecation_warning=True,
         **kwargs,
     ) -> None:
@@ -63,7 +63,7 @@ class AsyncEmbeddingEngine:
         self._engine_args = EngineArgs(**kwargs)
 
         self.running = False
-        self._running_sepamore: Optional[Semaphore] = None
+        self._running_sepamore: Semaphore | None = None
         self._model_replicas, self._min_inference_t, self._max_inference_t = select_model(
             self._engine_args
         )
@@ -72,7 +72,7 @@ class AsyncEmbeddingEngine:
     def from_args(
         cls,
         engine_args: EngineArgs,
-    ) -> "AsyncEmbeddingEngine":
+    ) -> AsyncEmbeddingEngine:
         """create an engine from EngineArgs
 
         Args:
@@ -148,7 +148,7 @@ class AsyncEmbeddingEngine:
 
     async def embed(
         self, sentences: list[str], matryoshka_dim: int | None = None
-    ) -> tuple[list["EmbeddingReturnType"], int]:
+    ) -> tuple[list[EmbeddingReturnType], int]:
         """embed multiple sentences
 
         Kwargs:
@@ -178,11 +178,11 @@ class AsyncEmbeddingEngine:
         query: str,
         docs: list[str],
         raw_scores: bool = False,
-        top_n: Optional[int] = None,
-        max_query_tokens: Optional[int] = None,
-        max_tokens_per_doc: Optional[int] = None,
-        max_pair_tokens: Optional[int] = None,
-    ) -> tuple[list["RerankReturnType"], int]:
+        top_n: int | None = None,
+        max_query_tokens: int | None = None,
+        max_tokens_per_doc: int | None = None,
+        max_pair_tokens: int | None = None,
+    ) -> tuple[list[RerankReturnType], int]:
         """rerank multiple sentences
 
         Kwargs:
@@ -258,9 +258,9 @@ class AsyncEmbeddingEngine:
     async def image_embed(
         self,
         *,
-        images: list[Union[str, "ImageClassType", bytes]],
+        images: list[str | ImageClassType | bytes],
         matryoshka_dim: int | None = None,
-    ) -> tuple[list["EmbeddingReturnType"], int]:
+    ) -> tuple[list[EmbeddingReturnType], int]:
         """embed multiple images
 
         Kwargs:
@@ -285,8 +285,8 @@ class AsyncEmbeddingEngine:
         return embeddings, usage
 
     async def audio_embed(
-        self, *, audios: list[Union[str, bytes]], matryoshka_dim: int | None = None
-    ) -> tuple[list["EmbeddingReturnType"], int]:
+        self, *, audios: list[str | bytes], matryoshka_dim: int | None = None
+    ) -> tuple[list[EmbeddingReturnType], int]:
         """embed multiple audios
 
         Kwargs:
@@ -322,17 +322,17 @@ class AsyncEmbeddingEngine:
 class AsyncEngineArray:
     """EngineArray is a collection of AsyncEmbeddingEngine objects."""
 
-    def __init__(self, engines: Iterable["AsyncEmbeddingEngine"]):
+    def __init__(self, engines: Iterable[AsyncEmbeddingEngine]):
         if not engines:
             raise ValueError("Engines cannot be empty")
         if len(list(engines)) != len(
-            set(engine.engine_args.served_model_name for engine in engines)
+            {engine.engine_args.served_model_name for engine in engines}
         ):
             raise ValueError("Engines must have unique model names")
         self.engines_dict = {engine.engine_args.served_model_name: engine for engine in engines}
 
     @classmethod
-    def from_args(cls, engine_args_array: Iterable[EngineArgs]) -> "AsyncEngineArray":
+    def from_args(cls, engine_args_array: Iterable[EngineArgs]) -> AsyncEngineArray:
         """create an engine from EngineArgs
 
         Args:
@@ -342,7 +342,7 @@ class AsyncEngineArray:
 
         return cls(engines=tuple(engines))
 
-    def __iter__(self) -> Iterator["AsyncEmbeddingEngine"]:
+    def __iter__(self) -> Iterator[AsyncEmbeddingEngine]:
         return iter(self.engines_dict.values())
 
     async def astart(self):
@@ -356,8 +356,8 @@ class AsyncEngineArray:
             await engine.astop()
 
     async def embed(
-        self, *, model: str, sentences: list[str], matryoshka_dim: Optional[int] = None
-    ) -> tuple[list["EmbeddingReturnType"], int]:
+        self, *, model: str, sentences: list[str], matryoshka_dim: int | None = None
+    ) -> tuple[list[EmbeddingReturnType], int]:
         """embed multiple sentences
 
         Kwargs:
@@ -387,11 +387,11 @@ class AsyncEngineArray:
         query: str,
         docs: list[str],
         raw_scores: bool = False,
-        top_n: Optional[int] = None,
-        max_query_tokens: Optional[int] = None,
-        max_tokens_per_doc: Optional[int] = None,
-        max_pair_tokens: Optional[int] = None,
-    ) -> tuple[list["RerankReturnType"], int]:
+        top_n: int | None = None,
+        max_query_tokens: int | None = None,
+        max_tokens_per_doc: int | None = None,
+        max_pair_tokens: int | None = None,
+    ) -> tuple[list[RerankReturnType], int]:
         """rerank multiple sentences
 
         Kwargs:
@@ -451,9 +451,9 @@ class AsyncEngineArray:
         self,
         *,
         model: str,
-        images: list[Union[str, "ImageClassType"]],
-        matryoshka_dim: Optional[int] = None,
-    ) -> tuple[list["EmbeddingReturnType"], int]:
+        images: list[str | ImageClassType],
+        matryoshka_dim: int | None = None,
+    ) -> tuple[list[EmbeddingReturnType], int]:
         """embed multiple images
 
         Kwargs:
@@ -473,14 +473,14 @@ class AsyncEngineArray:
         """
         return await self[model].image_embed(images=images, matryoshka_dim=matryoshka_dim)
 
-    def __getitem__(self, index_or_name: Union[str, int]) -> "AsyncEmbeddingEngine":
+    def __getitem__(self, index_or_name: str | int) -> AsyncEmbeddingEngine:
         """resolve engine by model name -> Auto resolve if only one engine is present
 
         Args:
             model_name (str): model name to be used
         """
         if len(self.engines_dict) == 1:
-            return list(self.engines_dict.values())[0]
+            return next(iter(self.engines_dict.values()))
         if isinstance(index_or_name, int):
             return list(self.engines_dict.values())[index_or_name]
         if isinstance(index_or_name, str) and index_or_name in self.engines_dict:
@@ -491,8 +491,8 @@ class AsyncEngineArray:
         )
 
     async def audio_embed(
-        self, *, model: str, audios: list[Union[str, bytes]], matryoshka_dim: Optional[int] = None
-    ) -> tuple[list["EmbeddingReturnType"], int]:
+        self, *, model: str, audios: list[str | bytes], matryoshka_dim: int | None = None
+    ) -> tuple[list[EmbeddingReturnType], int]:
         """embed multiple audios
 
         Kwargs:

@@ -8,17 +8,17 @@ files just imports external dependencies. Do not import any infinity_emb modules
 from __future__ import annotations
 
 import importlib.util
+from collections.abc import Iterable
 from functools import cached_property
-from typing import Iterable, Optional
 
 
 class OptionalImports:
     def __init__(
-        self, lib: str, extra_install: str, dependencies: Optional[Iterable[str]] = None
+        self, lib: str, extra_install: str, dependencies: Iterable[str] | None = None
     ) -> None:
         self.lib = lib
         self.extra_install = extra_install
-        self._marked_as_dirty: Optional[Exception] = None
+        self._marked_as_dirty: Exception | None = None
         self.dependencies = dependencies
 
     @cached_property

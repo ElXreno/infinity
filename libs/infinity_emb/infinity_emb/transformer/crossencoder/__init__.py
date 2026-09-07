@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 __all__ = ["truncate_texts_to_tokens"]
 
@@ -11,7 +12,7 @@ __all__ = ["truncate_texts_to_tokens"]
 def truncate_texts_to_tokens(
     tokenizer: Any,
     texts: Sequence[str],
-    max_tokens: Sequence[Optional[int]],
+    max_tokens: Sequence[int | None],
 ) -> list[str]:
     """Head-truncate each text to its first ``max_tokens[i]`` tokens.
 

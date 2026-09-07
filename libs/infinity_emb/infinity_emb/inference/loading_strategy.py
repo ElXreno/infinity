@@ -1,16 +1,15 @@
 from infinity_emb._optional_imports import CHECK_TORCH, CHECK_TRANSFORMERS, CHECK_XLA
 from infinity_emb.args import EngineArgs
-from infinity_emb.primitives import InferenceEngine, Device, Dtype, DeviceID, LoadingStrategy
-
+from infinity_emb.primitives import Device, DeviceID, Dtype, InferenceEngine, LoadingStrategy
 
 if CHECK_TORCH.is_available:
     import torch
 if CHECK_TRANSFORMERS.is_available:
     from transformers import is_torch_npu_available  # type: ignore
-    from transformers.utils.import_utils import is_torch_xla_available # type: ignore
+    from transformers.utils.import_utils import is_torch_xla_available  # type: ignore
 
 if CHECK_XLA.is_available:
-    import torch_xla # type: ignore
+    import torch_xla  # type: ignore
 
 
 def _validate_availale_device_ids(

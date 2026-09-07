@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from infinity_emb._optional_imports import CHECK_FASTAPI
 
@@ -21,8 +21,8 @@ class OpenAIException(Exception):
         self,
         message: str,
         code: int,
-        type: Optional[str] = None,
-        param: Optional[str] = None,
+        type: str | None = None,
+        param: str | None = None,
     ):
         self.message = message
         self.type = type

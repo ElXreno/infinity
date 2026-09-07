@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2023-now michaelfeil
 
-from typing import Any, Optional
+from typing import Any
 
 
 def replace_underlying_model(module: Any, model: Any) -> None:
@@ -20,7 +20,7 @@ def pooled_features(output: Any) -> Any:
     return getattr(output, "pooler_output", output)
 
 
-def text_max_length(config: Any, tokenizer: Any) -> Optional[int]:
+def text_max_length(config: Any, tokenizer: Any) -> int | None:
     """Longest text the text tower accepts. transformers >= 5 dropped `config.max_length`, so
     the limit comes from the text config's positions and the tokenizer; the smaller one wins
     because RoBERTa style towers reserve two positions and only the tokenizer knows that."""
