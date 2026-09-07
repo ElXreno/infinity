@@ -15,6 +15,10 @@ All notable changes to this fork are documented here. The format follows
 
 ### Fixed
 
+- The reader that hands finished batches back to the event loop slept with `time.sleep` after a
+  queue error, blocking the loop for a second per error; it awaits the sleep now.
+- The int8 probe runs the matrix shapes of a transformer layer: fbgemm picks its kernel from the
+  shape, so a toy `Linear` passed on CPUs that then crashed on the real model.
 - `--dtype int8` on CPU (`torch.quantization.quantize_dynamic`) probes the int8 kernels in a
   separate interpreter first: on CPUs where they raise an illegal-instruction fault (seen on
   GitHub's Windows runners) the model now stays fp32 with a warning instead of the process dying
@@ -25,6 +29,10 @@ All notable changes to this fork are documented here. The format follows
 
 ### Changed
 
+- The code follows the rules ruff enables by default since 0.16 (the lint run never pinned a rule
+  set, so the linter's own defaults decide it). Request handlers map their failures through one
+  error boundary instead of five copies of the same `except` chain, and the remaining broad
+  `except Exception` clauses name the types they mean where the library defines them.
 - Anonymized telemetry (engine arguments, model ids and system facts posted to the upstream
   author's PostHog project) is off by default; `INFINITY_ANONYMOUS_USAGE_STATS=1` opts in and
   `DO_NOT_TRACK=1` still wins.
