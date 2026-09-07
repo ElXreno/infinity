@@ -27,11 +27,13 @@ if CHECK_SENTENCE_TRANSFORMERS.is_available:
     from sentence_transformers.quantization import quantize_embeddings  # type: ignore
 
 
+# the shapes of a transformer layer: fbgemm picks its kernel from them, a toy Linear takes
+# a path that survives on CPUs which then crash on the real model
 _DYNAMIC_INT8_PROBE = (
     "import torch; "
-    "m = torch.nn.Linear(16, 16); "
+    "m = torch.nn.Sequential(torch.nn.Linear(384, 1536), torch.nn.Linear(1536, 384)); "
     "q = torch.quantization.quantize_dynamic(m, {torch.nn.Linear}, dtype=torch.qint8); "
-    "q(torch.randn(2, 16))"
+    "q(torch.randn(8, 128, 384))"
 )
 
 
