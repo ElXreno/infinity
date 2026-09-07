@@ -4,25 +4,25 @@
 import asyncio
 import os
 import signal
-import time
 import threading
+import time
 import uuid
-from contextlib import asynccontextmanager
-from typing import Any, Optional, Union, TYPE_CHECKING
+from contextlib import asynccontextmanager, contextmanager
+from typing import TYPE_CHECKING, Any, Union
 
 import infinity_emb
 from infinity_emb.args import EngineArgs
 from infinity_emb.engine import AsyncEmbeddingEngine, AsyncEngineArray
-from infinity_emb.inference.batch_handler import EngineUnhealthyError
 from infinity_emb.env import MANAGER
 from infinity_emb.fastapi_schemas import docs, errors
+from infinity_emb.inference.batch_handler import EngineUnhealthyError
 from infinity_emb.log_handler import logger
 from infinity_emb.primitives import (
     AudioCorruption,
     ImageCorruption,
+    MatryoshkaDimError,
     Modality,
     ModelCapabilites,
-    MatryoshkaDimError,
     ModelNotDeployedError,
 )
 from infinity_emb.telemetry import PostHog, StartupTelemetry, telemetry_log_info
@@ -52,7 +52,7 @@ def create_server(
     *,
     engine_args_list: list[EngineArgs],
     url_prefix: str = MANAGER.url_prefix,
-    doc_extra: dict[str, Any] = {},
+    doc_extra: dict[str, Any] | None = None,
     redirect_slash: str = MANAGER.redirect_slash,
     preload_only: bool = MANAGER.preload_only,
     permissive_cors: bool = MANAGER.permissive_cors,
@@ -67,6 +67,7 @@ def create_server(
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
     from prometheus_fastapi_instrumentator import Instrumentator
+
     from infinity_emb.fastapi_schemas.pymodels import (
         AudioEmbeddingInput,
         ClassifyInput,
@@ -79,6 +80,8 @@ def create_server(
         ReRankResult,
     )
 
+    if doc_extra is None:
+        doc_extra = {}
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         instrumentator.expose(app)  # type: ignore
@@ -122,7 +125,7 @@ def create_server(
         summary=docs.FASTAPI_SUMMARY,
         description=docs.FASTAPI_DESCRIPTION,
         version=infinity_emb.__version__,
-        contact=dict(name="Michael Feil, Raphael Wirth"),  # codespell:ignore
+        contact={"name": "Michael Feil, Raphael Wirth"},  # codespell:ignore
         docs_url=f"{url_prefix}/docs",
         openapi_url=f"{url_prefix}/openapi.json",
         license_info={
@@ -146,7 +149,7 @@ def create_server(
         oauth2_scheme = HTTPBearer(auto_error=False)
 
         async def validate_token(
-            credential: Optional[HTTPAuthorizationCredentials] = Depends(oauth2_scheme),
+            credential: HTTPAuthorizationCredentials | None = Depends(oauth2_scheme),
         ):
             if credential is None or credential.credentials != api_key:
                 raise HTTPException(
@@ -194,34 +197,34 @@ def create_server(
     )
     async def _models():
         """get models endpoint"""
-        engine_array: "AsyncEngineArray" = app.engine_array  # type: ignore
+        engine_array: AsyncEngineArray = app.engine_array  # type: ignore
         data = []
         for engine in engine_array:
             engine_args = engine.engine_args
             data.append(
-                dict(
-                    id=engine_args.served_model_name,
-                    stats=dict(
-                        queue_fraction=engine.overload_status().queue_fraction,
-                        queue_absolute=engine.overload_status().queue_absolute,
-                        results_pending=engine.overload_status().results_absolute,
-                        batch_size=engine_args.batch_size,
-                    ),
-                    capabilities=engine.capabilities,
-                    backend=engine_args.engine.name,
-                    embedding_dtype=engine_args.embedding_dtype.name,
-                    dtype=engine_args.dtype.name,
-                    revision=engine_args.revision,
-                    lengths_via_tokenize=engine_args.lengths_via_tokenize,
-                    device=engine_args.device.name,
-                )
+                {
+                    "id": engine_args.served_model_name,
+                    "stats": {
+                        "queue_fraction": engine.overload_status().queue_fraction,
+                        "queue_absolute": engine.overload_status().queue_absolute,
+                        "results_pending": engine.overload_status().results_absolute,
+                        "batch_size": engine_args.batch_size,
+                    },
+                    "capabilities": engine.capabilities,
+                    "backend": engine_args.engine.name,
+                    "embedding_dtype": engine_args.embedding_dtype.name,
+                    "dtype": engine_args.dtype.name,
+                    "revision": engine_args.revision,
+                    "lengths_via_tokenize": engine_args.lengths_via_tokenize,
+                    "device": engine_args.device.name,
+                }
             )
 
-        return dict(data=data)
+        return {"data": data}
 
     def _resolve_engine(model: str) -> "AsyncEmbeddingEngine":
         try:
-            engine: "AsyncEmbeddingEngine" = app.engine_array[model]  # type: ignore
+            engine: AsyncEmbeddingEngine = app.engine_array[model]  # type: ignore
         except IndexError as ex:
             raise errors.OpenAIException(
                 f"Invalid model: {ex}",
@@ -239,17 +242,50 @@ def create_server(
             )
         return engine
 
+    @contextmanager
+    def _openai_error_boundary(model: str, capability: str, modality: str | None = None):
+        """Turns what a request handler raises into the error shape an OpenAI client expects."""
+        try:
+            yield
+        except (ImageCorruption, AudioCorruption, MatryoshkaDimError) as ex:
+            raise errors.OpenAIException(
+                f"{ex.__class__} -> {ex}",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        except ModelNotDeployedError as ex:
+            asked_for = (
+                f"`{capability}`"
+                if modality is None
+                else f"`{capability}` for modality `{modality}`"
+            )
+            raise errors.OpenAIException(
+                f"ModelNotDeployedError: model=`{model}` does not support {asked_for}. Reason: {ex}",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        except EngineUnhealthyError as ex:
+            raise errors.OpenAIException(
+                str(ex),
+                code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except errors.OpenAIException:
+            raise
+        except Exception as ex:  # noqa: BLE001 - a request must never take the server down
+            raise errors.OpenAIException(
+                f"InternalServerError: {ex}",
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
     def _resolve_mixed_input(
         inputs: Union["DataURIorURL", list["DataURIorURL"]],
-    ) -> list[Union[str, bytes]]:
+    ) -> list[str | bytes]:
         if hasattr(inputs, "host"):
             # if it is a single url
-            urls_or_bytes: list[Union[str, bytes]] = [str(inputs)]
+            urls_or_bytes: list[str | bytes] = [str(inputs)]
         elif hasattr(inputs, "mimetype"):
-            urls_or_bytes: list[Union[str, bytes]] = [inputs.data]  # type: ignore
+            urls_or_bytes: list[str | bytes] = [inputs.data]  # type: ignore
         else:
             # is list, resolve to bytes or url
-            urls_or_bytes: list[Union[str, bytes]] = [  # type: ignore
+            urls_or_bytes: list[str | bytes] = [  # type: ignore
                 str(d) if hasattr(d, "host") else d.data
                 for d in inputs  # type: ignore
             ]
@@ -346,7 +382,7 @@ def create_server(
         data_root = data.root
         engine = _resolve_engine(data_root.model)
 
-        try:
+        with _openai_error_boundary(data_root.model, "embed", modality.value):
             start = time.perf_counter()
             if modality == Modality.text:
                 if isinstance(data_root.input, str):
@@ -388,26 +424,6 @@ def create_server(
                 encoding_format=data_root.encoding_format,
                 usage=usage,
             )
-        except ModelNotDeployedError as ex:
-            raise errors.OpenAIException(
-                f"ModelNotDeployedError: model=`{data_root.model}` does not support `embed` for modality `{modality.value}`. Reason: {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except (ImageCorruption, AudioCorruption, MatryoshkaDimError) as ex:
-            raise errors.OpenAIException(
-                f"{ex.__class__} -> {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except EngineUnhealthyError as ex:
-            raise errors.OpenAIException(
-                str(ex),
-                code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        except Exception as ex:
-            raise errors.OpenAIException(
-                f"InternalServerError: {ex}",
-                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
     @app.post(
         f"{url_prefix}/rerank",
@@ -430,7 +446,7 @@ def create_server(
         ```
         """
         engine = _resolve_engine(data.model)
-        try:
+        with _openai_error_boundary(data.model, "rerank"):
             logger.debug("[📝] Received request with %s docs ", len(data.documents))
             start = time.perf_counter()
 
@@ -453,21 +469,6 @@ def create_server(
                 usage=usage,
                 return_documents=data.return_documents,
             )
-        except ModelNotDeployedError as ex:
-            raise errors.OpenAIException(
-                f"ModelNotDeployedError: model=`{data.model}` does not support `rerank`. Reason: {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except EngineUnhealthyError as ex:
-            raise errors.OpenAIException(
-                str(ex),
-                code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        except Exception as ex:
-            raise errors.OpenAIException(
-                f"InternalServerError: {ex}",
-                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
     @app.post(
         f"{url_prefix}/classify",
@@ -486,7 +487,7 @@ def create_server(
         ```
         """
         engine = _resolve_engine(data.model)
-        try:
+        with _openai_error_boundary(data.model, "classify"):
             logger.debug("[📝] Received request with %s docs ", len(data.input))
             start = time.perf_counter()
 
@@ -501,21 +502,6 @@ def create_server(
                 scores_labels=scores_labels,
                 model=engine.engine_args.served_model_name,
                 usage=usage,
-            )
-        except ModelNotDeployedError as ex:
-            raise errors.OpenAIException(
-                f"ModelNotDeployedError: model=`{data.model}` does not support `classify`. Reason: {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except EngineUnhealthyError as ex:
-            raise errors.OpenAIException(
-                str(ex),
-                code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        except Exception as ex:
-            raise errors.OpenAIException(
-                f"InternalServerError: {ex}",
-                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @app.post(
@@ -546,7 +532,7 @@ def create_server(
         """
         engine = _resolve_engine(data.model)
         urls_or_bytes = _resolve_mixed_input(data.input)  # type: ignore
-        try:
+        with _openai_error_boundary(data.model, "image_embed"):
             logger.debug("[📝] Received request with %s Urls ", len(urls_or_bytes))
             start = time.perf_counter()
 
@@ -560,26 +546,6 @@ def create_server(
                 engine_args=engine.engine_args,
                 encoding_format=data.encoding_format,
                 usage=usage,
-            )
-        except (ImageCorruption, MatryoshkaDimError) as ex:
-            raise errors.OpenAIException(
-                f"{ex.__class__} -> {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except ModelNotDeployedError as ex:
-            raise errors.OpenAIException(
-                f"ModelNotDeployedError: model=`{data.model}` does not support `image_embed`. Reason: {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except EngineUnhealthyError as ex:
-            raise errors.OpenAIException(
-                str(ex),
-                code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        except Exception as ex:
-            raise errors.OpenAIException(
-                f"InternalServerError: {ex}",
-                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @app.post(
@@ -610,7 +576,7 @@ def create_server(
         """
         engine = _resolve_engine(data.model)
         urls_or_bytes = _resolve_mixed_input(data.input)  # type: ignore
-        try:
+        with _openai_error_boundary(data.model, "audio_embed"):
             logger.debug("[📝] Received request with %s Urls ", len(urls_or_bytes))
             start = time.perf_counter()
 
@@ -624,26 +590,6 @@ def create_server(
                 engine_args=engine.engine_args,
                 encoding_format=data.encoding_format,
                 usage=usage,
-            )
-        except (AudioCorruption, MatryoshkaDimError) as ex:
-            raise errors.OpenAIException(
-                f"{ex.__class__} -> {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except ModelNotDeployedError as ex:
-            raise errors.OpenAIException(
-                f"ModelNotDeployedError: model=`{data.model}` does not support `audio_embed`. Reason: {ex}",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        except EngineUnhealthyError as ex:
-            raise errors.OpenAIException(
-                str(ex),
-                code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-        except Exception as ex:
-            raise errors.OpenAIException(
-                f"InternalServerError: {ex}",
-                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     return app
