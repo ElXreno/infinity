@@ -7,7 +7,7 @@ from infinity_emb.fastapi_schemas.errors import (
 
 
 def test_exception():
-    det = dict(message="a tested error", code=418)
+    det = {"message": "a tested error", "code": 418}
 
     exception = openai_exception_handler(request=None, exc=OpenAIException(**det))
 

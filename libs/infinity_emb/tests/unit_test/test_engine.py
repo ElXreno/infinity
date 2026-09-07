@@ -12,9 +12,9 @@ from infinity_emb import AsyncEmbeddingEngine, AsyncEngineArray, EngineArgs
 from infinity_emb.primitives import (
     Device,
     EmbeddingDtype,
+    ImageCorruption,
     InferenceEngine,
     ModelNotDeployedError,
-    ImageCorruption,
 )
 
 # Only compile on Linux 3.9-3.11 with torch
@@ -224,7 +224,7 @@ async def test_torch_clip_embed():
             asyncio.create_task(engine.image_embed(images=image_urls)),
         )
         emb_text, usage_text = await t1
-        emb_image, usage_image = await t2
+        emb_image, _usage_image = await t2
         emb_text_np = np.array(emb_text)  # type: ignore
         emb_image_np = np.array(emb_image)  # type: ignore
 
@@ -268,7 +268,7 @@ async def test_clap_like_model(audio_sample):
     assert len(embeddings_text) == len(inputs)
     assert len(embeddings_audio) == len(audios)
     assert embeddings_text[0].shape[0] == embeddings_audio[0].shape[0]
-    assert all([e.shape[0] >= 10 for e in embeddings_text])
+    assert all(e.shape[0] >= 10 for e in embeddings_text)
     assert usage_2 > 0
 
 
@@ -296,7 +296,7 @@ async def test_clip_embed_pil_image_input(image_sample):
             asyncio.create_task(engine.image_embed(images=images)),
         )
         emb_text, usage_text = await t1
-        emb_image, usage_image = await t2
+        emb_image, _usage_image = await t2
         emb_text_np = np.array(emb_text)  # type: ignore
         emb_image_np = np.array(emb_image)  # type: ignore
 
@@ -455,8 +455,8 @@ async def test_torch_clip_embed_matryoshka():
                 engine.image_embed(images=image_urls, matryoshka_dim=matryoshka_dim)
             ),
         )
-        emb_text, usage_text = await t1
-        emb_image, usage_image = await t2
+        emb_text, _usage_text = await t1
+        emb_image, _usage_image = await t2
         emb_text_np = np.array(emb_text)  # type: ignore
         emb_image_np = np.array(emb_image)  # type: ignore
 
@@ -482,10 +482,10 @@ async def test_clap_like_model_matryoshka(audio_sample):
     inputs = ["a sound of a cat", "a sound of a cat"]
     audios = [url, bytes_url]
     async with engine:
-        embeddings_text, usage_1 = await engine.embed(
+        embeddings_text, _usage_1 = await engine.embed(
             sentences=inputs, matryoshka_dim=matryoshka_dim
         )
-        embeddings_audio, usage_2 = await engine.audio_embed(
+        embeddings_audio, _usage_2 = await engine.audio_embed(
             audios=audios, matryoshka_dim=matryoshka_dim
         )
 

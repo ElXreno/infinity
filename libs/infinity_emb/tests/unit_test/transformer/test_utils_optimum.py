@@ -180,7 +180,7 @@ def test_onnx_outputs_attribute_access():
     assert outputs.logits == [[1.0]]
     assert outputs["logits"] == [[1.0]]
     with pytest.raises(AttributeError):
-        outputs.last_hidden_state
+        _ = outputs.last_hidden_state
 
 
 def test_onnx_outputs_token_embeddings_naming():

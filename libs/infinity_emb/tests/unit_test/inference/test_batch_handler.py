@@ -4,6 +4,7 @@ import random
 import sys
 import threading
 import time
+from typing import ClassVar
 
 import numpy as np
 import pytest
@@ -23,7 +24,7 @@ MODEL_NAME: str = pytest.DEFAULT_BERT_MODEL  # type: ignore[assignment]
 
 
 class FailingCoreModel:
-    capabilities = {"embed"}
+    capabilities: ClassVar[set[str]] = {"embed"}
 
     def encode_pre(self, inputs):
         return inputs
@@ -159,7 +160,7 @@ async def test_batch_performance_raw(get_sts_bechmark_dataset, load_patched_bh):
 
         def method_patched(_sentences):
             _sentences = copy.deepcopy(_sentences)
-            st_s = list(sorted(_sentences))
+            st_s = sorted(_sentences)
             start = time.perf_counter()
 
             emb = []
@@ -182,13 +183,15 @@ async def test_batch_performance_raw(get_sts_bechmark_dataset, load_patched_bh):
         # yappi.stop()
         method_st(sentences[::10])
         await method_batch_handler(sentences[::10])
-        time.sleep(2)
+        # blocking on purpose: the timings compare against a quiet machine, an awaited sleep
+        # would let the batch handler keep running between the runs
+        time.sleep(2)  # noqa: ASYNC251
         time_batch_handler = np.median(
             [(await method_batch_handler(sentences)) for _ in range(N_TIMINGS)]
         )
-        time.sleep(2)
+        time.sleep(2)  # noqa: ASYNC251
         time_st = np.median([method_st(sentences) for _ in range(N_TIMINGS)])
-        time.sleep(2)
+        time.sleep(2)  # noqa: ASYNC251
         time_st_patched = np.median([method_patched(sentences) for _ in range(N_TIMINGS)])
 
         print(

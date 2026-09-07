@@ -1,12 +1,12 @@
 # type: ignore
 
 import base64
+import time
 
 import numpy as np
 import pytest
 import requests
 from asgi_lifespan import LifespanManager
-import time
 from httpx import ASGITransport, AsyncClient
 from openai import APIConnectionError, AsyncOpenAI
 
@@ -53,10 +53,10 @@ def url_to_base64(url, modality="image"):
             response = requests.get(url)
             if response.status_code == 200:
                 break
-        except Exception:
+        except requests.RequestException:
             time.sleep(1)
     else:
-        raise Exception(f"Failed to download {url}")
+        raise RuntimeError(f"Failed to download {url}")
     response.raise_for_status()
     base64_encoded = base64.b64encode(response.content).decode("utf-8")
     mimetype = f"{modality}/{url.split('.')[-1]}"

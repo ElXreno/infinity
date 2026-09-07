@@ -11,7 +11,7 @@ def test_rerank_single_str_repr_default_is_query_plus_document():
 def test_rerank_single_str_repr_differs_per_limits():
     # the cache keys on str_repr, so two requests for the same pair but different limits
     # must produce different keys (otherwise a capped result is served for an uncapped one).
-    pair = dict(query="q", document="d")
+    pair = {"query": "q", "document": "d"}
     default = ReRankSingle(**pair)
     capped = ReRankSingle(**pair, limits=RerankLimits(max_pair_tokens=32))
     capped_more = ReRankSingle(**pair, limits=RerankLimits(max_pair_tokens=64))

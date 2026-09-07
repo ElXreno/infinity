@@ -70,13 +70,13 @@ async def test_embedding_max_length(client):
     for model_name in [MODEL_NAME, MODEL_NAME_2]:
         input = "%_" * 4097 * 15
         response = await client.post(
-            f"{PREFIX}/embeddings", json=dict(input=input, model=model_name)
+            f"{PREFIX}/embeddings", json={"input": input, "model": model_name}
         )
         assert response.status_code == 422, f"{response.status_code}, {response.text}"
         # works
         input = "%_" * 4096 * 15
         response = await client.post(
-            f"{PREFIX}/embeddings", json=dict(input=input, model=model_name)
+            f"{PREFIX}/embeddings", json={"input": input, "model": model_name}
         )
         assert response.status_code == 200, f"{response.status_code}, {response.text}"
         assert response.json()["model"] == model_name
@@ -88,12 +88,12 @@ async def test_encoding_base_64(client, model_name):
     input = "Hello World"
     response = await client.post(
         f"{PREFIX}/embeddings",
-        json=dict(input=input, model=model_name, encoding_format="float"),
+        json={"input": input, "model": model_name, "encoding_format": "float"},
     )
     assert response.status_code == 200
     response_base64 = await client.post(
         f"{PREFIX}/embeddings",
-        json=dict(input=input, model=model_name, encoding_format="base64"),
+        json={"input": input, "model": model_name, "encoding_format": "base64"},
     )
     assert response_base64.status_code == 200
     embedding = response.json()["data"][0]["embedding"]
@@ -109,7 +109,7 @@ async def test_embedding(client):
         ["This is a test sentence.", "This is another test sentence."],
     ]
     for inp in possible_inputs:
-        response = await client.post(f"{PREFIX}/embeddings", json=dict(input=inp, model=MODEL_NAME))
+        response = await client.post(f"{PREFIX}/embeddings", json={"input": inp, "model": MODEL_NAME})
         assert response.status_code == 200, f"{response.status_code}, {response.text}"
         rdata = response.json()
         assert "data" in rdata and isinstance(rdata["data"], list)
@@ -126,10 +126,9 @@ async def test_batch_embedding(client, get_sts_bechmark_dataset):
         for item in d:
             sentences.append(item.texts[0])
     random.shuffle(sentences)
-    sentences = sentences
 
     async def _post_batch(inputs):
-        return await client.post(f"{PREFIX}/embeddings", json=dict(input=inputs, model=MODEL_NAME))
+        return await client.post(f"{PREFIX}/embeddings", json={"input": inputs, "model": MODEL_NAME})
 
     _request_size = BATCH_SIZE // 2
     tasks = [
@@ -183,7 +182,7 @@ async def test_matryoshka_embedding(client):
     for inp in possible_inputs:
         response = await client.post(
             f"{PREFIX}/embeddings",
-            json=dict(input=inp, model=MODEL_NAME, dimensions=matryoshka_dim),
+            json={"input": inp, "model": MODEL_NAME, "dimensions": matryoshka_dim},
         )
         assert response.status_code == 200, f"{response.status_code}, {response.text}"
         rdata = response.json()

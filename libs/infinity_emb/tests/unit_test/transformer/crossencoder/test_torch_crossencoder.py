@@ -1,13 +1,12 @@
 import sys
 
 import numpy as np
+import torch
 from sentence_transformers import CrossEncoder  # type: ignore
 
 from infinity_emb.args import EngineArgs
-from infinity_emb.transformer.crossencoder.torch import CrossEncoderPatched
 from infinity_emb.primitives import Device
-
-import torch
+from infinity_emb.transformer.crossencoder.torch import CrossEncoderPatched
 
 device = Device.cpu if torch.backends.mps.is_available() else Device.auto
 

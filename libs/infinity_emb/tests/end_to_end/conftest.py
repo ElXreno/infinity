@@ -31,7 +31,7 @@ class Helpers:
 
         async def _post_batch(inputs):
             return await client.post(
-                f"{prefix}/embeddings", json=dict(input=inputs, model=model_name)
+                f"{prefix}/embeddings", json={"input": inputs, "model": model_name}
             )
 
         response = await _post_batch(inputs=dummy_sentences)
@@ -81,7 +81,7 @@ class Helpers:
 
         for inp in possible_inputs:
             response = await client.post(
-                f"{prefix}/embeddings", json=dict(input=inp, model=model_name)
+                f"{prefix}/embeddings", json={"input": inp, "model": model_name}
             )
             assert response.status_code == 200, f"{response.status_code}, {response.text}"
             rdata = response.json()

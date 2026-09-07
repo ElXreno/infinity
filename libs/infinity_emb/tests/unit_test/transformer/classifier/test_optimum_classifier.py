@@ -1,6 +1,6 @@
 from transformers.pipelines import pipeline  # type: ignore
-from infinity_emb.args import EngineArgs
 
+from infinity_emb.args import EngineArgs
 from infinity_emb.inference.batch_handler import logits_to_probabilities
 from infinity_emb.transformer.classifier.optimum import OptimumClassifier
 

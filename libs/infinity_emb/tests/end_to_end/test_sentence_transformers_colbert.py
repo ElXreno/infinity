@@ -1,8 +1,9 @@
+import numpy as np
 import pytest
 import torch
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
-import numpy as np
+
 from infinity_emb import create_server
 from infinity_emb.args import EngineArgs
 from infinity_emb.primitives import Device, InferenceEngine
@@ -60,7 +61,7 @@ async def test_model_route(client):
 @pytest.mark.anyio
 async def test_embedding(client):
     response = await client.post(
-        f"{PREFIX}/embeddings", json=dict(input=["This is a test", "hi", "hi"], model=MODEL)
+        f"{PREFIX}/embeddings", json={"input": ["This is a test", "hi", "hi"], "model": MODEL}
     )
     assert response.status_code == 200
     rdata = response.json()

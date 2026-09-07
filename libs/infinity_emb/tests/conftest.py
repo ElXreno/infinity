@@ -32,10 +32,9 @@ def _download(url: str, **kwargs) -> requests.Response:
             response = requests.get(url, **kwargs)
             if response.status_code == 200:
                 return response
-        except Exception:
-            pass
-    else:
-        raise Exception(f"Failed to download {url}")
+        except requests.RequestException:
+            continue
+    raise RuntimeError(f"Failed to download {url}")
 
 
 @pytest.fixture(scope="function")

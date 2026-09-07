@@ -1,4 +1,3 @@
-from typing import Optional
 
 import pytest
 import torch
@@ -15,7 +14,7 @@ if torch.cuda.is_available():
     devices.append(Device.cuda)
 
 
-def get_model(device: Optional[str] = "cpu"):
+def get_model(device: str | None = "cpu"):
     name = "michaelfeil/bge-small-en-v1.5"
     model = BertModel.from_pretrained(
         name,

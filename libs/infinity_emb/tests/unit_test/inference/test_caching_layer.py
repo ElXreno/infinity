@@ -1,5 +1,6 @@
 import asyncio
 import threading
+import time
 
 import numpy as np
 import pytest
@@ -68,8 +69,11 @@ async def test_consumer_survives_failed_write(monkeypatch):
         c._add_q.put(("boom", [1.0]))
         c._add_q.put(("fine", [2.0]))
 
-        # task_done() runs after each write, so join() returns once both are processed
-        await asyncio.wait_for(asyncio.to_thread(c._add_q.join), timeout=10)
+        # polled instead of `Queue.join()`: a dead writer would block that join forever, and
+        # the thread running it keeps the interpreter alive at exit
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and c._add_q.unfinished_tasks:
+            await asyncio.sleep(0.05)
 
         # the writer processed the item *after* the one that raised
         assert seen == ["boom", "fine"]
