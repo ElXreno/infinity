@@ -13,6 +13,24 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
+      "description": "The python constraint states which interpreters the package supports, raising it drops 3.12 and 3.13 and makes poetry resolve ancient wheels",
+      "matchManagers": ["poetry"],
+      "matchDepNames": ["python"],
+      "enabled": false
+    },
+    {
+      "description": "onnxruntime-openvino, installed on top in Dockerfile.cpu_auto, has no release beyond 1.24.1",
+      "matchManagers": ["poetry"],
+      "matchPackageNames": ["onnxruntime"],
+      "allowedVersions": "<1.25"
+    },
+    {
+      "description": "onnxruntime-gpu is pinned against the tensorrt build, most combinations are broken",
+      "matchManagers": ["poetry"],
+      "matchPackageNames": ["onnxruntime-gpu"],
+      "enabled": false
+    },
+    {
       "matchManagers": ["poetry"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "python dependencies"
