@@ -14,7 +14,7 @@ keywords = ["vector", "embedding", "neural", "search", "sentence-transformers"]
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
 numpy = ">=2.0,<3"
-huggingface_hub= {version = ">=1.5.0,<2"}
+huggingface_hub= {version = ">=2.2,<3"}
 # logging
 rich = {version = ">=13", optional=true}
 # webserver-only
